@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import com.drajer.ecrapp.config.SpringConfiguration;
 import com.drajer.sof.model.LaunchDetails;
 import com.drajer.test.util.TestUtils;
+import java.util.Date;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,6 +40,7 @@ public class LaunchDetailsDaoTest {
 
   @Test
   public void saveLaunchDetails() {
+    expectedLaunchDetails.setLastUpdated(new Date());
     LaunchDetails actualLaunchDetails = launchDetailsDaoImpl.saveOrUpdate(expectedLaunchDetails);
 
     assertNotNull(actualLaunchDetails);
@@ -47,6 +49,7 @@ public class LaunchDetailsDaoTest {
 
   @Test
   public void getAuthDetailsById() {
+    expectedLaunchDetails.setLastUpdated(new Date());
     LaunchDetails savedLaunchDetails = launchDetailsDaoImpl.saveOrUpdate(expectedLaunchDetails);
     LaunchDetails actualLaunchDetails =
         launchDetailsDaoImpl.getAuthDetailsById(savedLaunchDetails.getId());
