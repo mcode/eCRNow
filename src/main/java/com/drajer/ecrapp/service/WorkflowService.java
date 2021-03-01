@@ -22,11 +22,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.kagkarlsson.scheduler.Scheduler;
 import java.time.Instant;
 import java.util.Date;
+import java.util.Map;
 import java.util.Set;
 import javax.annotation.PostConstruct;
 import org.hl7.fhir.r4.model.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
@@ -152,26 +154,36 @@ public class WorkflowService {
       executeActionsForType(details, EcrActionTypes.MATCH_TRIGGER, launchType);
     }
 
-    if (state.getCreateEicrStatus().getJobStatus() != JobStatus.COMPLETED) {
+    if (state.getCreateEicrStatus().getJobStatus() != JobStatus.COMPLETED
+        && state.getCloseOutEicrStatus().getJobStatus() != JobStatus.COMPLETED) {
       logger.info(" Execute Create Eicr Action ");
       executeActionsForType(details, EcrActionTypes.CREATE_EICR, launchType);
+    } else if (state.getCloseOutEicrStatus().getJobStatus() == JobStatus.COMPLETED) {
+      logger.info(" Stopping Create Action ");
+      state.getCreateEicrStatus().setJobStatus(JobStatus.COMPLETED);
     }
 
     if (state.getPeriodicUpdateJobStatus() == JobStatus.NOT_STARTED
         && state.getCloseOutEicrStatus().getJobStatus() != JobStatus.COMPLETED) {
       logger.info(" Execute Periodic Update Action ");
       executeActionsForType(details, EcrActionTypes.PERIODIC_UPDATE_EICR, launchType);
+    } else if (state.getCloseOutEicrStatus().getJobStatus() == JobStatus.COMPLETED) {
+      logger.info(" Stopping Periodic Update Action ");
+      state.setPeriodicUpdateJobStatus(JobStatus.COMPLETED);
     }
 
-    if (state.getCloseOutEicrStatus().getJobStatus() != JobStatus.COMPLETED) {
+    if (state.getCloseOutEicrStatus().getJobStatus() == JobStatus.NOT_STARTED) {
       logger.info(" Execute Close Out Action ");
       executeActionsForType(details, EcrActionTypes.CLOSE_OUT_EICR, launchType);
     }
 
     logger.info(" Execute Validate Eicr Action ");
     executeActionsForType(details, EcrActionTypes.VALIDATE_EICR, launchType);
-    logger.info(" Execute Submit Eicr Action ");
-    executeActionsForType(details, EcrActionTypes.SUBMIT_EICR, launchType);
+
+    if (!details.getValidationMode()) {
+      logger.info(" Execute Submit Eicr Action ");
+      executeActionsForType(details, EcrActionTypes.SUBMIT_EICR, launchType);
+    }
     logger.info(" Execute RR Check Action ");
     executeActionsForType(details, EcrActionTypes.RR_CHECK, launchType);
 
@@ -226,20 +238,27 @@ public class WorkflowService {
 
     private EcrActionTypes actionType;
 
-    public EicrActionExecuteJob(Integer launchDetailsId, EcrActionTypes actionType) {
+    private Map<String, String> loggingDiagnosticContext;
+
+    public EicrActionExecuteJob(
+        Integer launchDetailsId,
+        EcrActionTypes actionType,
+        Map<String, String> loggingDiagnosticContext) {
       this.launchDetailsId = launchDetailsId;
       this.actionType = actionType;
+      this.loggingDiagnosticContext = loggingDiagnosticContext;
     }
 
     @Override
     public void run() {
       try {
-
-        executeScheduledAction(launchDetailsId, actionType, WorkflowEvent.SCHEDULED_JOB);
+        MDC.setContextMap(loggingDiagnosticContext);
         logger.info("Starting the Thread");
-        Thread.currentThread().interrupt();
+        executeScheduledAction(launchDetailsId, actionType, WorkflowEvent.SCHEDULED_JOB);
       } catch (Exception e) {
         logger.info("Error in Getting Data=====>", e);
+      } finally {
+        MDC.clear();
       }
     }
   }
@@ -255,7 +274,7 @@ public class WorkflowService {
 
     invokeScheduler(launchDetailsId, actionType, t);
 
-    String timing = (t != null) ? t.toString() : "";
+    String timing = t.toString();
     logger.info("Job Scheduled for Action to execute for : {} at time : {}", actionType, timing);
   }
 
@@ -269,7 +288,7 @@ public class WorkflowService {
 
     invokeScheduler(launchDetailsId, actionType, t);
 
-    String timing = (t != null) ? t.toString() : "";
+    String timing = t.toString();
     logger.info("Job Scheduled for Action to execute for : {} at time : {}", actionType, timing);
   }
 
@@ -277,14 +296,18 @@ public class WorkflowService {
       Integer launchDetailsId, EcrActionTypes actionType, Instant t) {
 
     CommandLineRunner task = null;
-    logger.info("Scheduling one time task to now!");
+    logger.info("Scheduling one time task to {}", t.toString());
 
     task = ignored -> logger.info("Scheduling one time task to after!");
     staticScheduler.schedule(
         staticTaskConfiguration
             .sampleOneTimeTask()
             .instance(
-                actionType.toString() + "_" + String.valueOf(launchDetailsId),
+                actionType.toString()
+                    + "_"
+                    + String.valueOf(launchDetailsId)
+                    + "_"
+                    + java.util.UUID.randomUUID().toString(),
                 new TaskTimer(100L, launchDetailsId, actionType, t)),
         t);
 
