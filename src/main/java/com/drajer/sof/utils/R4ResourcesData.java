@@ -34,6 +34,9 @@ public class R4ResourcesData {
   private static final String OBSERVATION = "Observation";
   private static final String CONDITION = "Condition";
 
+  private static final String OBSERVATION_SOCIAL_HISTORY = "social-history";
+  private static final String OBSERVATION_STATUS_ENTERED_IN_ERROR = "entered-in-error";
+
   private static final String ENCOUNTER_DIAGNOSIS_CONDITION = "encounter-diagnosis";
   private static final String PROBLEM_LIST_CONDITION = "problem-list-item";
 
@@ -117,42 +120,57 @@ public class R4ResourcesData {
     for (BundleEntryComponent entry : bundle.getEntry()) {
       Condition condition = (Condition) entry.getResource();
 
-      if (condition.getAbatement() == null && condition.hasCategory()) {
-        List<CodeableConcept> conditionCategory = condition.getCategory();
-        for (CodeableConcept categoryCodeableConcept : conditionCategory) {
-          List<Coding> categoryCodingList = categoryCodeableConcept.getCoding();
-          for (Coding categoryCoding : categoryCodingList) {
-            boolean foundPregnancyCondition =
-                condition
-                    .getCode()
-                    .getCoding()
-                    .stream()
-                    .anyMatch(
-                        coding ->
-                            Arrays.stream(QueryConstants.getPregnancySmtCodes())
-                                .anyMatch(coding.getCode()::equals));
-            if (categoryCoding.getCode().equals(PROBLEM_LIST_CONDITION)
-                && !foundPregnancyCondition) {
-              logger.info("Added condition to problem list {}", condition.getId());
-              problemConditions.add(condition);
-              conditionCodes.addAll(findConditionCodes(condition));
-            } else if (categoryCoding.getCode().equals(ENCOUNTER_DIAGNOSIS_CONDITION)
-                && condition.hasEncounter()
-                && !foundPregnancyCondition) {
+      if ((condition.getVerificationStatus() == null)
+          || (condition.getVerificationStatus() != null
+              && condition.getVerificationStatus().getCodingFirstRep() != null
+              && condition.getVerificationStatus().getCodingFirstRep().getCode() != null
+              && !condition
+                  .getVerificationStatus()
+                  .getCodingFirstRep()
+                  .getCode()
+                  .equals("entered-in-error"))) {
 
-              if (condition
-                  .getEncounter()
-                  .getReference()
-                  .equals("Encounter/" + launchDetails.getEncounterId())) {
-                logger.info("Added condition to Encounter Diagnosis list {}", condition.getId());
-                encounterDiagnosisConditions.add(condition);
+        logger.info(" Condition Verification Status is not entered in error ");
+
+        if (condition.getAbatement() == null && condition.hasCategory()) {
+          List<CodeableConcept> conditionCategory = condition.getCategory();
+          for (CodeableConcept categoryCodeableConcept : conditionCategory) {
+            List<Coding> categoryCodingList = categoryCodeableConcept.getCoding();
+            for (Coding categoryCoding : categoryCodingList) {
+              boolean foundPregnancyCondition =
+                  condition
+                      .getCode()
+                      .getCoding()
+                      .stream()
+                      .anyMatch(
+                          coding ->
+                              Arrays.stream(QueryConstants.getPregnancySmtCodes())
+                                  .anyMatch(coding.getCode()::equals));
+              if (categoryCoding.getCode().equals(PROBLEM_LIST_CONDITION)
+                  && !foundPregnancyCondition) {
+                logger.info("Added condition to problem list {}", condition.getId());
+                problemConditions.add(condition);
                 conditionCodes.addAll(findConditionCodes(condition));
+              } else if (categoryCoding.getCode().equals(ENCOUNTER_DIAGNOSIS_CONDITION)
+                  && condition.hasEncounter()
+                  && !foundPregnancyCondition) {
+
+                if (condition
+                    .getEncounter()
+                    .getReference()
+                    .equals("Encounter/" + launchDetails.getEncounterId())) {
+                  logger.info("Added condition to Encounter Diagnosis list {}", condition.getId());
+                  encounterDiagnosisConditions.add(condition);
+                  conditionCodes.addAll(findConditionCodes(condition));
+                }
               }
             }
           }
+        } else {
+          logger.info("Condition Abatement is not present. So condition is not added to Bundle");
         }
       } else {
-        logger.info("Condition Abatement is not present. So condition is not added to Bundle");
+        logger.info("Condition Verification status prevents condition from adding to the Bundle ");
       }
     }
     allConditions.addAll(problemConditions);
@@ -191,7 +209,8 @@ public class R4ResourcesData {
     List<Observation> observations = new ArrayList<>();
     List<CodeableConcept> observationCodes = new ArrayList<>();
     // Filter Observations based on Encounter Reference
-    if (encounter != null && !encounter.getIdElement().getValue().isEmpty()) {
+    if (encounter != null && !encounter.getIdElement().getValue().isEmpty() && bundle != null) {
+      bundle = filterObservationByStatus(bundle, OBSERVATION_STATUS_ENTERED_IN_ERROR);
       for (BundleEntryComponent entry : bundle.getEntry()) {
         Observation observation = (Observation) entry.getResource();
         if (!observation.getEncounter().isEmpty()
@@ -206,7 +225,8 @@ public class R4ResourcesData {
       }
       // If Encounter Id is not present using start and end dates to filter
       // Observations
-    } else {
+    } else if (bundle != null) {
+      bundle = filterObservationByStatus(bundle, OBSERVATION_STATUS_ENTERED_IN_ERROR);
       for (BundleEntryComponent entry : bundle.getEntry()) {
         Observation observation = (Observation) entry.getResource();
         // Checking If Issued Date is present in Observation resource
@@ -256,6 +276,7 @@ public class R4ResourcesData {
                 QueryConstants.LOINC_CODE_SYSTEM);
     List<Observation> observations = new ArrayList<>();
     if (bundle != null) {
+      bundle = filterObservationByStatus(bundle, OBSERVATION_STATUS_ENTERED_IN_ERROR);
       observations = filterObservation(bundle, encounter, start, end);
     }
     return observations;
@@ -280,6 +301,9 @@ public class R4ResourcesData {
                 QueryConstants.LOINC_CODE_SYSTEM);
     List<Observation> observations = new ArrayList<>();
     if (bundle != null) {
+      bundle = filterObservationsBundleByCategory(bundle, OBSERVATION_SOCIAL_HISTORY);
+      bundle = filterObservationByStatus(bundle, OBSERVATION_STATUS_ENTERED_IN_ERROR);
+
       observations = filterObservation(bundle, encounter, start, end);
     }
 
@@ -295,6 +319,14 @@ public class R4ResourcesData {
                   QueryConstants.SNOMED_CODE_SYSTEM);
       List<Observation> travelobs = new ArrayList<>();
       if (travelHisWithSNOMEDCodesbundle != null) {
+
+        travelHisWithSNOMEDCodesbundle =
+            filterObservationsBundleByCategory(
+                travelHisWithSNOMEDCodesbundle, OBSERVATION_SOCIAL_HISTORY);
+        travelHisWithSNOMEDCodesbundle =
+            filterObservationByStatus(
+                travelHisWithSNOMEDCodesbundle, OBSERVATION_STATUS_ENTERED_IN_ERROR);
+
         travelobs = filterObservation(travelHisWithSNOMEDCodesbundle, encounter, start, end);
       }
       if (!travelobs.isEmpty()) {
@@ -303,6 +335,50 @@ public class R4ResourcesData {
     }
 
     return observations;
+  }
+
+  private Bundle filterObservationByStatus(Bundle bundle, String observationStatus) {
+    Bundle filteredBundle = new Bundle();
+    List<BundleEntryComponent> filteredEntryComponents =
+        new ArrayList<Bundle.BundleEntryComponent>();
+    for (BundleEntryComponent entryComp : bundle.getEntry()) {
+      Observation observation = (Observation) entryComp.getResource();
+      if (observation.hasStatus()) {
+        if (!observation.getStatus().toCode().equals(observationStatus)) {
+          filteredEntryComponents.add(new BundleEntryComponent().setResource(observation));
+        } else {
+          logger.info(
+              "Received Observation with Status entered-in-error::: So Skipping the Observation");
+        }
+      }
+    }
+    filteredBundle.setEntry(filteredEntryComponents);
+    return filteredBundle;
+  }
+
+  private Bundle filterObservationsBundleByCategory(
+      Bundle bundle, String observationSocialHistory) {
+    Bundle filteredBundle = new Bundle();
+    List<BundleEntryComponent> filteredEntryComponents =
+        new ArrayList<Bundle.BundleEntryComponent>();
+    for (BundleEntryComponent entryComp : bundle.getEntry()) {
+      Observation observation = (Observation) entryComp.getResource();
+      List<CodeableConcept> observationCategories = observation.getCategory();
+      boolean isSocialHistory =
+          observationCategories
+              .stream()
+              .anyMatch(
+                  category ->
+                      category
+                          .getCoding()
+                          .stream()
+                          .anyMatch(coding -> coding.getCode().equals(observationSocialHistory)));
+      if (isSocialHistory) {
+        filteredEntryComponents.add(new BundleEntryComponent().setResource(observation));
+      }
+    }
+    filteredBundle.setEntry(filteredEntryComponents);
+    return filteredBundle;
   }
 
   public List<Observation> getSocialHistoryObservationDataOccupation(
@@ -325,6 +401,8 @@ public class R4ResourcesData {
                   occupationCode,
                   QueryConstants.SNOMED_CODE_SYSTEM);
       if (occupationCodesbundle != null) {
+        occupationCodesbundle =
+            filterObservationByStatus(occupationCodesbundle, OBSERVATION_STATUS_ENTERED_IN_ERROR);
         for (BundleEntryComponent entryComp : occupationCodesbundle.getEntry()) {
           observations.add((Observation) entryComp.getResource());
         }
@@ -341,7 +419,10 @@ public class R4ResourcesData {
                   OBSERVATION,
                   occupationCode,
                   QueryConstants.LOINC_CODE_SYSTEM);
+
       if (occupationCodesbundle != null) {
+        occupationCodesbundle =
+            filterObservationByStatus(occupationCodesbundle, OBSERVATION_STATUS_ENTERED_IN_ERROR);
         for (BundleEntryComponent entryComp : occupationCodesbundle.getEntry()) {
           observations.add((Observation) entryComp.getResource());
         }
@@ -769,6 +850,7 @@ public class R4ResourcesData {
     if (encounter != null && !encounter.getIdElement().getValue().isEmpty()) {
       for (BundleEntryComponent entry : bundle.getEntry()) {
         ServiceRequest serviceRequest = (ServiceRequest) entry.getResource();
+
         if (!serviceRequest.getEncounter().isEmpty()
             && serviceRequest
                 .getEncounter()

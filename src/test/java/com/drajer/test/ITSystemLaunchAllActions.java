@@ -181,7 +181,7 @@ public class ITSystemLaunchAllActions extends BaseIntegrationTest {
     waitForEICR(50000);
     getLaunchDetailAndStatus();
     validateMatchedTriggerStatus(JobStatus.COMPLETED);
-    validateCreateEICR(JobStatus.SCHEDULED, false);
+    validateCreateEICR(JobStatus.COMPLETED, false);
     List<Eicr> allEICRDocuments = getAllEICRDocuments();
     assertEquals(0, allEICRDocuments != null ? allEICRDocuments.size() : "");
   }
@@ -459,7 +459,7 @@ public class ITSystemLaunchAllActions extends BaseIntegrationTest {
     headers.clear();
     headers.setContentType(MediaType.APPLICATION_JSON);
     headers.add("X-Request-ID", "123456");
-    headers.add("X-Correlation-ID", eicr.getxCoorrelationId());
+    headers.add("X-Correlation-ID", eicr.getxCorrelationId());
 
     URIBuilder ub;
     try {
