@@ -9,6 +9,7 @@ import com.drajer.ecrapp.model.Eicr;
 import com.drajer.test.util.TestUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
 import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -75,6 +76,17 @@ public class EicrDaoTest {
   }
 
   @Test
+  public void getEicrAndRRDataByXRequestId() {
+
+    Eicr savedEicr = eicrDaoImpl.saveOrUpdate(expectedEicr);
+    List<Eicr> actualEicr = eicrDaoImpl.getEicrAndRRByXRequestId(savedEicr.getxRequestId());
+
+    assertEquals(1, actualEicr.size());
+    assertEquals(expectedEicr.getEicrData(), actualEicr.get(0).getEicrData());
+    assertEquals(expectedEicr.getResponseData(), actualEicr.get(0).getResponseData());
+  }
+
+  @Test
   public void getMaxVersionId() throws JsonProcessingException {
 
     // First Row with docverison 1.0
@@ -93,7 +105,8 @@ public class EicrDaoTest {
   @Test
   public void getEicrByCoorrelationId() {
     eicrDaoImpl.saveOrUpdate(expectedEicr);
-    Eicr actualEicr = eicrDaoImpl.getEicrByCoorrelationId(expectedEicr.getxCoorrelationId());
+
+    Eicr actualEicr = eicrDaoImpl.getEicrByCorrelationId(expectedEicr.getxCorrelationId());
 
     assertNotNull(actualEicr);
     assertEicr(expectedEicr, actualEicr);
@@ -101,7 +114,7 @@ public class EicrDaoTest {
 
   public void assertEicr(Eicr expectedEicr, Eicr actualEicr) {
     assertEquals(expectedEicr.getxRequestId(), actualEicr.getxRequestId());
-    assertEquals(expectedEicr.getxCoorrelationId(), actualEicr.getxCoorrelationId());
+    assertEquals(expectedEicr.getxCorrelationId(), actualEicr.getxCorrelationId());
     assertEquals(expectedEicr.getEicrDocId(), actualEicr.getEicrDocId());
     assertEquals(expectedEicr.getSetId(), actualEicr.getSetId());
     assertEquals(expectedEicr.getDocVersion(), actualEicr.getDocVersion());

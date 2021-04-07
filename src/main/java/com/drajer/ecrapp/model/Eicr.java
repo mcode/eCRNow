@@ -74,6 +74,14 @@ public class Eicr {
   @Column(name = "ehr_doc_ref_id", nullable = true, columnDefinition = "TEXT")
   private String ehrDocRefId;
 
+  // Status of the eicr processing to handle exceptions in the future
+  @Column(name = "eicr_proc_status", nullable = true, columnDefinition = "TEXT")
+  private String eicrProcStatus;
+
+  // Status of the rr processing to handle exceptions in the future
+  @Column(name = "rr_proc_status", nullable = true, columnDefinition = "TEXT")
+  private String rrProcStatus;
+
   // Timestamps
   @Column(name = "last_updated_ts", nullable = false)
   @CreationTimestamp
@@ -117,14 +125,6 @@ public class Eicr {
 
   public void setResponseType(String responseType) {
     this.responseType = responseType;
-  }
-
-  public String getxCoorrelationId() {
-    return xCorrelationId;
-  }
-
-  public void setxCoorrelationId(String xCoorrelationId) {
-    this.xCorrelationId = xCoorrelationId;
   }
 
   public String getEicrDocId() {
@@ -229,5 +229,21 @@ public class Eicr {
 
   public void setEhrDocRefId(String ehrDocRefId) {
     this.ehrDocRefId = ehrDocRefId;
+  }
+
+  public String getEicrProcStatus() {
+    return eicrProcStatus;
+  }
+
+  public void setEicrProcStatus(String eicrProcStatus) {
+    this.eicrProcStatus = eicrProcStatus;
+  }
+
+  public String getRrProcStatus() {
+    return rrProcStatus;
+  }
+
+  public void setRrProcStatus(String rrProcStatus) {
+    this.rrProcStatus = rrProcStatus;
   }
 }

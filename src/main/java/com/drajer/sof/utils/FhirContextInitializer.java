@@ -2,13 +2,17 @@ package com.drajer.sof.utils;
 
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.model.dstu2.resource.Bundle;
+import ca.uhn.fhir.model.dstu2.resource.Bundle.Entry;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.client.interceptor.BearerTokenAuthInterceptor;
+import ca.uhn.fhir.rest.client.interceptor.LoggingInterceptor;
 import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 import com.drajer.sof.model.LaunchDetails;
+import java.util.List;
 import org.hl7.fhir.instance.model.api.IBaseBundle;
 import org.hl7.fhir.instance.model.api.IBaseResource;
+import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,6 +62,9 @@ public class FhirContextInitializer {
     IGenericClient client = context.newRestfulGenericClient(url);
     context.getRestfulClientFactory().setSocketTimeout(30 * 1000);
     client.registerInterceptor(new BearerTokenAuthInterceptor(accessToken));
+    if (logger.isDebugEnabled()) {
+      client.registerInterceptor(new LoggingInterceptor(true));
+    }
     logger.info("Initialized the Client");
     return client;
   }
@@ -84,18 +91,17 @@ public class FhirContextInitializer {
     try {
       logger.info("Getting {} data", resourceName);
       resource = genericClient.read().resource(resourceName).withId(resourceId).execute();
-    } catch (Exception e) {
-      logger.info(e.getMessage());
-      if (e instanceof BaseServerResponseException) {
-        if (((BaseServerResponseException) e).getOperationOutcome() != null) {
-          logger.info(
-              context
-                  .newJsonParser()
-                  .encodeResourceToString(((BaseServerResponseException) e).getOperationOutcome()));
-        }
+    } catch (BaseServerResponseException responseException) {
+      if (responseException.getOperationOutcome() != null) {
+        logger.debug(
+            context
+                .newJsonParser()
+                .encodeResourceToString(responseException.getOperationOutcome()));
       }
       logger.error(
-          "Error in getting {} resource by Id: {}", resourceName, resourceId, e.getMessage());
+          "Error in getting {} resource by Id: {}", resourceName, resourceId, responseException);
+    } catch (Exception e) {
+      logger.error("Error in getting {} resource by Id: {}", resourceName, resourceId, e);
     }
     return resource;
   }
@@ -169,47 +175,82 @@ public class FhirContextInitializer {
       logger.info(
           "Getting {} data using Patient Id: {}", resourceName, authDetails.getLaunchPatientId());
       if (authDetails.getFhirVersion().equalsIgnoreCase(DSTU2)) {
-        bundleResponse = genericClient.search().byUrl(url).returnBundle(Bundle.class).execute();
-        Bundle bundle = (Bundle) bundleResponse;
-
+        Bundle bundle = genericClient.search().byUrl(url).returnBundle(Bundle.class).execute();
+        getAllDSTU2RecordsUsingPagination(genericClient, bundle);
         if (logger.isInfoEnabled()) {
           logger.info(
               "Total No of {} received::::::::::::::::: {}",
               resourceName,
               bundle.getEntry().size());
         }
+        bundleResponse = bundle;
       } else if (authDetails.getFhirVersion().equalsIgnoreCase(R4)) {
-        bundleResponse =
+        org.hl7.fhir.r4.model.Bundle bundle =
             genericClient
                 .search()
                 .byUrl(url)
                 .returnBundle(org.hl7.fhir.r4.model.Bundle.class)
                 .execute();
-        org.hl7.fhir.r4.model.Bundle bundle = (org.hl7.fhir.r4.model.Bundle) bundleResponse;
-
+        getAllR4RecordsUsingPagination(genericClient, bundle);
         if (logger.isInfoEnabled()) {
           logger.info(
               "Total No of {} received::::::::::::::::: {}",
               resourceName,
               bundle.getEntry().size());
         }
+        bundleResponse = bundle;
       }
-    } catch (Exception e) {
-      if (e instanceof BaseServerResponseException) {
-        if (((BaseServerResponseException) e).getOperationOutcome() != null) {
-          logger.info(
-              context
-                  .newJsonParser()
-                  .encodeResourceToString(((BaseServerResponseException) e).getOperationOutcome()));
-        }
+    } catch (BaseServerResponseException responseException) {
+      if (responseException.getOperationOutcome() != null) {
+        logger.debug(
+            context
+                .newJsonParser()
+                .encodeResourceToString(responseException.getOperationOutcome()));
       }
       logger.info(
           "Error in getting {} resource by Patient Id: {}",
           resourceName,
           authDetails.getLaunchPatientId(),
-          e.getMessage());
+          responseException);
+    } catch (Exception e) {
+      logger.info(
+          "Error in getting {} resource by Patient Id: {}",
+          resourceName,
+          authDetails.getLaunchPatientId(),
+          e);
     }
 
     return bundleResponse;
+  }
+
+  private static void getAllR4RecordsUsingPagination(
+      IGenericClient genericClient, org.hl7.fhir.r4.model.Bundle bundle) {
+    if (bundle.hasEntry()) {
+      List<BundleEntryComponent> entriesList = bundle.getEntry();
+      if (bundle.hasLink() && bundle.getLink(IBaseBundle.LINK_NEXT) != null) {
+        logger.info(
+            "Found Next Page in Bundle:::::{}", bundle.getLink(IBaseBundle.LINK_NEXT).getUrl());
+        org.hl7.fhir.r4.model.Bundle nextPageBundleResults =
+            genericClient.loadPage().next(bundle).execute();
+        entriesList.addAll(nextPageBundleResults.getEntry());
+        nextPageBundleResults.setEntry(entriesList);
+        getAllR4RecordsUsingPagination(genericClient, nextPageBundleResults);
+      }
+    }
+  }
+
+  private static void getAllDSTU2RecordsUsingPagination(
+      IGenericClient genericClient, Bundle bundle) {
+    if (bundle.getEntry() != null) {
+      List<Entry> entriesList = bundle.getEntry();
+      if (bundle.getLink(IBaseBundle.LINK_NEXT) != null) {
+        logger.info(
+            "Found Next Page in Bundle:::::{}", bundle.getLink(IBaseBundle.LINK_NEXT).getUrl());
+        Bundle nextPageBundleResults = genericClient.loadPage().next(bundle).execute();
+        entriesList.addAll(nextPageBundleResults.getEntry());
+        nextPageBundleResults.setEntry(entriesList);
+        getAllDSTU2RecordsUsingPagination(genericClient, nextPageBundleResults);
+      }
+    }
   }
 }

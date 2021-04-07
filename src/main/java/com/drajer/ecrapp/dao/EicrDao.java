@@ -17,11 +17,13 @@ public interface EicrDao {
 
   Integer getMaxVersionId(Eicr eicr);
 
-  Eicr getEicrByCoorrelationId(String coorelId);
+  Eicr getEicrByCorrelationId(String coorelId);
 
   List<Eicr> getEicrData(Map<String, String> searchParams);
 
   List<Eicr> getRRData(Map<String, String> searchParams);
+
+  List<Eicr> getEicrAndRRByXRequestId(String xRequestId);
 
   Eicr getEicrByDocId(String docId);
 }

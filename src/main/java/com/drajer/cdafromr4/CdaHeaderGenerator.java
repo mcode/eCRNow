@@ -50,7 +50,7 @@ public class CdaHeaderGenerator {
       String docId = CdaGeneratorUtils.getGuid();
       eICRHeader.append(CdaGeneratorUtils.getXmlForII(docId));
       ecr.setEicrDocId(docId);
-      ecr.setxCoorrelationId(docId);
+      ecr.setxCorrelationId(docId);
 
       // Set the other eICR details.
       ecr.setFhirServerUrl(details.getEhrServerURL());
@@ -235,7 +235,7 @@ public class CdaHeaderGenerator {
         sb.append(typeXml);
       } else {
         List<Coding> codes = null;
-        sb.append(CdaFhirUtilities.getCodingXml(codes, CdaGeneratorConstants.CODE_EL_NAME));
+        sb.append(CdaFhirUtilities.getCodingXml(codes, CdaGeneratorConstants.CODE_EL_NAME, ""));
       }
 
       sb.append(CdaGeneratorUtils.getXmlForStartElement(CdaGeneratorConstants.LOCATION_EL_NAME));
@@ -269,7 +269,7 @@ public class CdaHeaderGenerator {
         sb.append(typeXml);
       } else {
         List<Coding> codes = null;
-        sb.append(CdaFhirUtilities.getCodingXml(codes, CdaGeneratorConstants.CODE_EL_NAME));
+        sb.append(CdaFhirUtilities.getCodingXml(codes, CdaGeneratorConstants.CODE_EL_NAME, ""));
       }
 
       sb.append(CdaGeneratorUtils.getXmlForStartElement(CdaGeneratorConstants.LOCATION_EL_NAME));
@@ -459,7 +459,7 @@ public class CdaHeaderGenerator {
         }
       }
 
-      sb.append(CdaEncounterGenerator.getEncounterCodeXml(en));
+      sb.append(CdaEncounterGenerator.getEncounterCodeXml(en, ""));
       sb.append(
           CdaFhirUtilities.getPeriodXml(en.getPeriod(), CdaGeneratorConstants.EFF_TIME_EL_NAME));
     } else {

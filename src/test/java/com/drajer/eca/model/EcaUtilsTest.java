@@ -228,6 +228,26 @@ public class EcaUtilsTest {
     newState.getMatchTriggerStatus().setTriggerMatchStatus(false);
     boolean noOldAndNewCodes = EcaUtils.hasNewTriggerCodeMatches(oldState, newState);
     assertFalse(noOldAndNewCodes);
+
+    PatientExecutionState oState =
+        (PatientExecutionState)
+            TestUtils.getResourceAsObject(
+                "R4/Misc/EcaUtils/OldState.json", PatientExecutionState.class);
+
+    PatientExecutionState nState =
+        (PatientExecutionState)
+            TestUtils.getResourceAsObject(
+                "R4/Misc/EcaUtils/NewStateWithDifferentPath.json", PatientExecutionState.class);
+    boolean matchedCodes = EcaUtils.hasNewTriggerCodeMatches(oState, nState);
+    assertTrue(matchedCodes);
+
+    PatientExecutionState olState =
+        (PatientExecutionState)
+            TestUtils.getResourceAsObject(
+                "R4/Misc/EcaUtils/OldStateWithDifferentPath.json", PatientExecutionState.class);
+
+    boolean matchCodes = EcaUtils.hasNewTriggerCodeMatches(olState, nState);
+    assertFalse(matchCodes);
   }
 
   public void setupMockForMatchTrigger() {
@@ -248,6 +268,9 @@ public class EcaUtilsTest {
 
     when(ValueSetSingleton.getInstance()).thenReturn(mockValueSet);
     when(mockState.getMatchTriggerStatus()).thenReturn(matchTriggerStatus);
+    when(ActionRepo.getInstance()).thenReturn(mockActionRepo);
+    when(ActionRepo.getInstance().getRctcOid()).thenReturn("2.16.840.1.113762.1.4.1146.1123");
+    when(ActionRepo.getInstance().getRctcVersion()).thenReturn("1");
 
     // Dstu2  Setup
     ptCodes = new ArrayList<>();
