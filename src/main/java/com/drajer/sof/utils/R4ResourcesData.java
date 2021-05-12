@@ -839,7 +839,8 @@ public class R4ResourcesData {
     List<ServiceRequest> serviceRequests = new ArrayList<>();
     List<CodeableConcept> serviceRequestCodes = new ArrayList<>();
     // Filter ServiceRequests based on Encounter Reference
-    if (encounter != null && !encounter.getIdElement().getValue().isEmpty()) {
+    if (encounter != null && !encounter.getIdElement().getValue().isEmpty() && bundle != null) {
+      bundle = filterServiceRequestByStatus(bundle, ENTERED_IN_ERROR);
       for (BundleEntryComponent entry : bundle.getEntry()) {
         ServiceRequest serviceRequest = (ServiceRequest) entry.getResource();
 
@@ -855,7 +856,8 @@ public class R4ResourcesData {
       }
       // If Encounter Id is not present using start and end dates to filter
       // ServiceRequests
-    } else {
+    } else if (bundle != null) {
+      bundle = filterServiceRequestByStatus(bundle, ENTERED_IN_ERROR);
       for (BundleEntryComponent entry : bundle.getEntry()) {
         ServiceRequest serviceRequest = (ServiceRequest) entry.getResource();
         // Checking If ServiceRequest DateTime is present in ServiceRequest
@@ -884,6 +886,24 @@ public class R4ResourcesData {
     }
     r4FhirData.setR4ServiceRequestCodes(serviceRequestCodes);
     return serviceRequests;
+  }
+
+  private Bundle filterServiceRequestByStatus(Bundle bundle, String serviceRequestStatus) {
+    Bundle filteredBundle = new Bundle();
+    List<BundleEntryComponent> filteredEntryComponents = new ArrayList<>();
+    for (BundleEntryComponent entryComp : bundle.getEntry()) {
+      ServiceRequest serviceRequest = (ServiceRequest) entryComp.getResource();
+      if (serviceRequest.hasStatus()) {
+        if (!serviceRequest.getStatus().toCode().equals(serviceRequestStatus)) {
+          filteredEntryComponents.add(new BundleEntryComponent().setResource(serviceRequest));
+        } else {
+          logger.info(
+              "Received ServiceRequest with Status entered-in-error::: So Skipping the ServiceRequest");
+        }
+      }
+    }
+    filteredBundle.setEntry(filteredEntryComponents);
+    return filteredBundle;
   }
 
   public static List<Observation> filterObservation(
