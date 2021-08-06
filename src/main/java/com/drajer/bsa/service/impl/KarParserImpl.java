@@ -42,6 +42,7 @@ import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.DataRequirement;
+import org.hl7.fhir.r4.model.Endpoint;
 import org.hl7.fhir.r4.model.Expression;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.PlanDefinition;
@@ -50,6 +51,8 @@ import org.hl7.fhir.r4.model.PlanDefinition.PlanDefinitionActionComponent;
 import org.hl7.fhir.r4.model.PlanDefinition.PlanDefinitionActionConditionComponent;
 import org.hl7.fhir.r4.model.PlanDefinition.PlanDefinitionActionRelatedActionComponent;
 import org.hl7.fhir.r4.model.PrimitiveType;
+import org.hl7.fhir.r4.model.Reference;
+import org.hl7.fhir.r4.model.Resource;
 import org.hl7.fhir.r4.model.ResourceType;
 import org.hl7.fhir.r4.model.TriggerDefinition;
 import org.hl7.fhir.r4.model.TriggerDefinition.TriggerType;
@@ -207,6 +210,7 @@ public class KarParserImpl implements KarParser {
       // Setup the Id.
       art.setKarId(karBundle.getId());
 
+
       // Setup Version.
       if (karBundle.getMeta() != null && karBundle.getMeta().getVersionId() != null)
         art.setKarVersion(karBundle.getMeta().getVersionId());
@@ -231,6 +235,9 @@ public class KarParserImpl implements KarParser {
         } else if (Optional.ofNullable(comp).isPresent()
             && comp.getResource().getResourceType() == ResourceType.Library) {
           logger.info(" Processing Library");
+        } else if (Optional.ofNullable(comp).isPresent()){
+          logger.info(" Adding resource to dependencies");
+          art.addDependentResource(comp.getResource());
         }
       }
 
@@ -300,7 +307,7 @@ public class KarParserImpl implements KarParser {
 
       Extension ext = plan.getExtensionByUrl(RECEIVER_ADDRESS_URL);
 
-      if (ext != null) {
+      if (ext != null && ext.hasValue()) {
 
         Type t = ext.getValue();
         if (t instanceof PrimitiveType) {
@@ -309,6 +316,11 @@ public class KarParserImpl implements KarParser {
 
             logger.info(" Found Receiver Address {}", i.getValueAsString());
             art.addReceiverAddress((UriType) i);
+          }
+        } else if (t instanceof Reference) {
+          Endpoint endpoint = (Endpoint) art.getDependentResource(ResourceType.Endpoint, ((Reference) t).getReference());
+          if (endpoint.hasAddressElement()){
+            art.addReceiverAddress(endpoint.getAddressElement());
           }
         }
       }
@@ -501,6 +513,10 @@ public class KarParserImpl implements KarParser {
     }
 
     return events;
+  }
+
+  private void setReportSubmissionEndpoint(String reportSubmissionEndpoint) {
+    this.reportSubmissionEndpoint = reportSubmissionEndpoint;
   }
 
   private void processValueSet(ValueSet vs, KnowledgeArtifact art) {
