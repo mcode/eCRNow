@@ -12,6 +12,7 @@ import java.util.Set;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.DataRequirement;
 import org.hl7.fhir.r4.model.Resource;
+import org.hl7.fhir.r4.model.UriType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -27,7 +28,6 @@ public class SubmitReport extends BsaAction {
 
   @Override
   public BsaActionStatus process(KarProcessingData data, EhrQueryService ehrService) {
-
     logger.info(" Executing the submission of the Report to : {}", submissionEndpoint);
 
     BsaActionStatus actStatus = new SubmitReportStatus();
@@ -50,48 +50,18 @@ public class SubmitReport extends BsaAction {
           resourcesToSubmit.addAll(resources);
         }
       }
-
-      for (Resource r : resourcesToSubmit) {
-
-        IGenericClient client = context.newRestfulGenericClient(submissionEndpoint);
-
-        context.getRestfulClientFactory().setSocketTimeout(30 * 1000);
-
-        // All submissions are expected to be bundles
-        Bundle bundleToSubmit = (Bundle) r;
-
-        Bundle responseBundle =
-            (Bundle)
-                client
-                    .operation()
-                    .processMessage()
-                    .setMessageBundle(bundleToSubmit)
-                    .encodedJson()
-                    .execute();
-
-        if (responseBundle != null) {
-          logger.info(
-              "Response Bundle:::::{}",
-              context.newJsonParser().encodeResourceToString(responseBundle));
-
-          data.addActionOutput(actionId, responseBundle);
-
-          logger.info(" Adding Response Bundle to output using id {}", responseBundle.getId());
-
-          data.addActionOutputById(responseBundle.getId(), responseBundle);
+      
+      Set<UriType> endpoints = data.getKar().getReceiverAddresses();
+      if (endpoints.size() > 0) {
+        for (UriType uri : endpoints) {
+          submitResources(resourcesToSubmit, data, ehrService, actStatus, uri.getValueAsString());
         }
+      }
+      if(!submissionEndpoint.isEmpty()){
+        submitResources(resourcesToSubmit, data, ehrService, actStatus, submissionEndpoint);
+      }
 
-        if (conditionsMet(data)) {
 
-          // Execute sub Actions
-          executeSubActions(data, ehrService);
-
-          // Execute Related Actions.
-          executeRelatedActions(data, ehrService);
-        }
-
-        actStatus.setActionStatus(BsaActionStatusType.Completed);
-      } // for all resources to be submitted
     } else {
 
       logger.info(
@@ -101,6 +71,52 @@ public class SubmitReport extends BsaAction {
     }
 
     return actStatus;
+  }
+
+  private void submitResources(Set<Resource> resourcesToSubmit, KarProcessingData data, EhrQueryService ehrService, BsaActionStatus actStatus, String submissionEndpoint) {
+    for (Resource r : resourcesToSubmit) {
+
+      IGenericClient client = context.newRestfulGenericClient(submissionEndpoint);
+
+      context.getRestfulClientFactory().setSocketTimeout(30 * 1000);
+
+      // All submissions are expected to be bundles
+      Bundle bundleToSubmit = (Bundle) r;
+
+      Bundle responseBundle =
+          (Bundle)
+              client
+                  .operation()
+                  .processMessage()
+                  .setMessageBundle(bundleToSubmit)
+                  .encodedJson()
+                  .execute();
+
+      if(responseBundle != null) {
+        logger.info(
+            "Response Bundle:::::{}",
+            context.newJsonParser().encodeResourceToString(responseBundle));
+
+        data.addActionOutput(actionId, responseBundle);
+
+        logger.info(" Adding Response Bundle to output using id {}", responseBundle.getId());
+
+        data.addActionOutputById(responseBundle.getId(), responseBundle);
+
+      }
+
+
+      if (conditionsMet(data)) {
+
+        // Execute sub Actions
+        executeSubActions(data, ehrService);
+
+        // Execute Related Actions.
+        executeRelatedActions(data, ehrService);
+      }
+
+      actStatus.setActionStatus(BsaActionStatusType.Completed);
+    } // for all resources to be submitted
   }
 
   public String getSubmissionEndpoint() {
