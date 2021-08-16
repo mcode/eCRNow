@@ -1,6 +1,7 @@
 package com.drajer.bsa.service.impl;
 
 import ca.uhn.fhir.parser.IParser;
+import com.drajer.bsa.ehr.subscriptions.SubscriptionGenerator;
 import com.drajer.bsa.kar.action.EvaluateMeasure;
 import com.drajer.bsa.kar.action.SubmitReport;
 import com.drajer.bsa.kar.action.ValidateReport;
@@ -85,6 +86,8 @@ public class KarParserImpl implements KarParser {
 
   @Value("${measure-reporting-period.end}")
   String measurePeriodEnd;
+
+  @Autowired SubscriptionGenerator subscriptionGenerator;
 
   @Autowired BsaServiceUtils utils;
 
@@ -235,6 +238,7 @@ public class KarParserImpl implements KarParser {
   private void processPlanDefinition(PlanDefinition plan, KnowledgeArtifact art) {
 
     processExtensions(plan, art);
+    subscriptionGenerator.subscriptionsFromPlanDef(plan);
     List<PlanDefinitionActionComponent> actions = plan.getAction();
 
     for (PlanDefinitionActionComponent act : actions) {
