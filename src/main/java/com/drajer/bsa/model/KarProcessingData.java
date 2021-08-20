@@ -374,6 +374,12 @@ public class KarProcessingData {
     this.karExecutionStateService = karExecutionStateService;
   }
 
+  public KnowledgeArtifactStatus getKarStatus() { return karStatus; }
+
+  public void setKarStatus(KnowledgeArtifactStatus karStatus) {
+    this.karStatus = karStatus;
+  }
+
   public EhrQueryService getEhrQueryService() {
     return ehrQueryService;
   }

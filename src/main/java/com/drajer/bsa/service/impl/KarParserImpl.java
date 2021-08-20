@@ -1,6 +1,7 @@
 package com.drajer.bsa.service.impl;
 
 import ca.uhn.fhir.parser.IParser;
+
 import com.drajer.bsa.ehr.subscriptions.SubscriptionGenerator;
 import com.drajer.bsa.kar.action.EvaluateMeasure;
 import com.drajer.bsa.kar.action.SubmitReport;
@@ -255,7 +256,6 @@ public class KarParserImpl implements KarParser {
       PlanDefinition plan, KnowledgeArtifact art, File karBundleFile) {
 
     processExtensions(plan, art);
-    subscriptionGenerator.subscriptionsFromPlanDef(plan);
     List<PlanDefinitionActionComponent> actions = plan.getAction();
 
     for (PlanDefinitionActionComponent act : actions) {
