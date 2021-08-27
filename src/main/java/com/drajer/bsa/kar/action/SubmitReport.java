@@ -51,8 +51,7 @@ public class SubmitReport extends BsaAction {
         }
       }
 
-
-      if(!submissionEndpoint.isEmpty()){
+      if (!submissionEndpoint.isEmpty()) {
         submitResources(resourcesToSubmit, data, ehrService, actStatus, submissionEndpoint);
       } else {
         Set<UriType> endpoints = data.getKar().getReceiverAddresses();
@@ -62,7 +61,6 @@ public class SubmitReport extends BsaAction {
           }
         }
       }
-
 
     } else {
 
@@ -75,7 +73,12 @@ public class SubmitReport extends BsaAction {
     return actStatus;
   }
 
-  private void submitResources(Set<Resource> resourcesToSubmit, KarProcessingData data, EhrQueryService ehrService, BsaActionStatus actStatus, String submissionEndpoint) {
+  private void submitResources(
+      Set<Resource> resourcesToSubmit,
+      KarProcessingData data,
+      EhrQueryService ehrService,
+      BsaActionStatus actStatus,
+      String submissionEndpoint) {
     for (Resource r : resourcesToSubmit) {
 
       IGenericClient client = context.newRestfulGenericClient(submissionEndpoint);
@@ -94,7 +97,7 @@ public class SubmitReport extends BsaAction {
                   .encodedJson()
                   .execute();
 
-      if(responseBundle != null) {
+      if (responseBundle != null) {
         logger.info(
             "Response Bundle:::::{}",
             context.newJsonParser().encodeResourceToString(responseBundle));
@@ -104,9 +107,7 @@ public class SubmitReport extends BsaAction {
         logger.info(" Adding Response Bundle to output using id {}", responseBundle.getId());
 
         data.addActionOutputById(responseBundle.getId(), responseBundle);
-
       }
-
 
       if (conditionsMet(data)) {
 
