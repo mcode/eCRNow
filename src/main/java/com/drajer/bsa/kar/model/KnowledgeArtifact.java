@@ -117,7 +117,7 @@ public class KnowledgeArtifact {
 
   public void addDependentResource(Resource res) {
     // format id for local reference
-    String id = String.format("%s/%s", res.getResourceType(), res.getIdElement().getIdPart() );
+    String id = String.format("%s/%s", res.getResourceType(), res.getIdElement().getIdPart());
     if (dependencies.containsKey(res.getResourceType())) {
 
       // Dependency to be added.
