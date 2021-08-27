@@ -2,7 +2,9 @@ package com.drajer.bsa.service.impl;
 
 import ca.uhn.fhir.parser.IParser;
 
-import com.drajer.bsa.ehr.subscriptions.SubscriptionGenerator;
+import com.drajer.bsa.dao.HealthcareSettingsDao;
+import com.drajer.bsa.ehr.service.EhrQueryService;
+import com.drajer.bsa.ehr.subscriptions.SubscriptionGeneratorService;
 import com.drajer.bsa.kar.action.EvaluateMeasure;
 import com.drajer.bsa.kar.action.SubmitReport;
 import com.drajer.bsa.kar.action.ValidateReport;
@@ -13,8 +15,11 @@ import com.drajer.bsa.kar.model.BsaCondition;
 import com.drajer.bsa.kar.model.BsaRelatedAction;
 import com.drajer.bsa.kar.model.KnowledgeArtifact;
 import com.drajer.bsa.kar.model.KnowledgeArtifactRepositorySystem;
+import com.drajer.bsa.kar.model.KnowledgeArtifactStatus;
 import com.drajer.bsa.model.BsaTypes;
 import com.drajer.bsa.model.BsaTypes.ActionType;
+import com.drajer.bsa.model.HealthcareSetting;
+import com.drajer.bsa.model.KarProcessingData;
 import com.drajer.bsa.scheduler.BsaScheduler;
 import com.drajer.bsa.service.KarParser;
 import com.drajer.bsa.utils.BsaServiceUtils;
@@ -88,9 +93,13 @@ public class KarParserImpl implements KarParser {
   @Value("${measure-reporting-period.end}")
   String measurePeriodEnd;
 
-  @Autowired SubscriptionGenerator subscriptionGenerator;
-
   @Autowired BsaServiceUtils utils;
+
+  @Autowired HealthcareSettingsDao hsDao;
+
+  @Autowired SubscriptionGeneratorService subscriptionGeneratorService;
+
+  @Autowired EhrQueryService ehrInterface;
 
   // Autowired to pass to action processors.
   @Autowired BsaScheduler scheduler;
@@ -163,9 +172,8 @@ public class KarParserImpl implements KarParser {
   public void loadKarsFromDirectory(String dirName) {
 
     // Load each of the Knowledge Artifact Bundles.
-    File folder = new File(dirName);
-    List<File> kars = (List<File>) FileUtils.listFiles(folder, null, false);
-
+    File folder = new File(karDirectory);
+    List<File> kars = (List<File>) FileUtils.listFiles(folder, KAR_FILE_EXT, true);
     for (File kar : kars) {
 
       if (kar.isFile() && JSON_KAR_EXT.contentEquals(FilenameUtils.getExtension(kar.getName()))) {
@@ -225,15 +233,34 @@ public class KarParserImpl implements KarParser {
         }
       }
 
+      List<HealthcareSetting> allHealthcareSettings = hsDao.getAllHealthcareSettings();
+
+      for (HealthcareSetting healthcareSetting : allHealthcareSettings) {
+        KarProcessingData kd = makeData(healthcareSetting, art);
+        subscriptionGeneratorService.createSubscriptions(kd);
+      }
+      
       KnowledgeArtifactRepositorySystem.getInstance().add(art);
       art.printKarSummary();
-
+      
     } else {
 
       logger.error(
           " Bundle for Path : {} cannot be processed because it is either non existent or of the wrong bundle type.",
           kar);
     }
+  }
+
+  private KarProcessingData makeData(HealthcareSetting hs, KnowledgeArtifact art) {
+    KarProcessingData kd = new KarProcessingData();
+    kd.setHealthcareSetting(hs);
+    kd.setKar(art);
+    kd.setEhrQueryService(ehrInterface);
+    KnowledgeArtifactStatus knowledgeArtifactStatus = new KnowledgeArtifactStatus();
+    knowledgeArtifactStatus.setIsActive(true);
+    knowledgeArtifactStatus.setSubscriptionsEnabled(true);
+    kd.setKarStatus(knowledgeArtifactStatus);
+    return kd;
   }
 
   private void processPlanDefinition(PlanDefinition plan, KnowledgeArtifact art) {
