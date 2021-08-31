@@ -20,6 +20,7 @@ import com.drajer.bsa.model.BsaTypes;
 import com.drajer.bsa.model.BsaTypes.ActionType;
 import com.drajer.bsa.model.HealthcareSetting;
 import com.drajer.bsa.model.KarProcessingData;
+import com.drajer.bsa.model.NotificationContext;
 import com.drajer.bsa.scheduler.BsaScheduler;
 import com.drajer.bsa.service.KarParser;
 import com.drajer.bsa.utils.BsaServiceUtils;
@@ -256,6 +257,7 @@ public class KarParserImpl implements KarParser {
     kd.setHealthcareSetting(hs);
     kd.setKar(art);
     kd.setEhrQueryService(ehrInterface);
+    kd.setNotificationContext(new NotificationContext());
     KnowledgeArtifactStatus knowledgeArtifactStatus = new KnowledgeArtifactStatus();
     knowledgeArtifactStatus.setIsActive(true);
     knowledgeArtifactStatus.setSubscriptionsEnabled(true);
