@@ -119,6 +119,11 @@ public class HealthcareSetting {
   @Type(type = "org.hibernate.type.NumericBooleanType")
   private Boolean requireAud = false;
 
+  /** This attribute shows whether the fhir server supports subscriptions. */
+  @Column(name = "subscriptions_enabled", nullable = false)
+  @Type(type = "org.hibernate.type.NumericBooleanType")
+  private Boolean subscriptionsEnabled = false;
+
   /** This attribute represents the last time when the object was updated. */
   @Column(name = "last_updated_ts", nullable = false)
   @CreationTimestamp
@@ -248,6 +253,14 @@ public class HealthcareSetting {
 
   public void setRequireAud(Boolean requireAud) {
     this.requireAud = requireAud;
+  }
+
+  public Boolean getSubscriptionsEnabled() {
+    return subscriptionsEnabled;
+  }
+
+  public void setSubscriptionsEnabled(Boolean subscriptionsEnabled) {
+    this.subscriptionsEnabled = subscriptionsEnabled;
   }
 
   public String getFhirVersion() {
