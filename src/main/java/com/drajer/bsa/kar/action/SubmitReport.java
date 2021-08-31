@@ -51,7 +51,14 @@ public class SubmitReport extends BsaAction {
         }
       }
 
-      if (!submissionEndpoint.isEmpty()) {
+      if (!data.getHealthcareSetting().getTrustedThirdParty().isEmpty()) {
+        submitResources(
+            resourcesToSubmit,
+            data,
+            ehrService,
+            actStatus,
+            data.getHealthcareSetting().getTrustedThirdParty());
+      } else if (!submissionEndpoint.isEmpty()) {
         submitResources(resourcesToSubmit, data, ehrService, actStatus, submissionEndpoint);
       } else {
         Set<UriType> endpoints = data.getKar().getReceiverAddresses();

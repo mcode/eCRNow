@@ -111,6 +111,10 @@ public class HealthcareSetting {
   @Column(name = "kars_active", nullable = true, columnDefinition = "TEXT")
   private String karsActive;
 
+  /** This attribute defines the trusted third party that reports should be submitted to. */
+  @Column(name = "trusted_third_party", nullable = true, columnDefinition = "TEXT")
+  private String trustedThirdParty;
+
   /** This attribute represents the type of authentication to be used by the healthcare setting. */
   @Column(name = "auth_type", nullable = false, columnDefinition = "TEXT")
   private String authType;
@@ -216,6 +220,14 @@ public class HealthcareSetting {
 
   public void setEncounterEndThreshold(String encounterEndThreshold) {
     this.encounterEndThreshold = encounterEndThreshold;
+  }
+
+  public String getTrustedThirdParty() {
+    return trustedThirdParty;
+  }
+
+  public void setTrustedThirdParty(String trustedThirdParty) {
+    this.trustedThirdParty = trustedThirdParty;
   }
 
   public String getAuthType() {
