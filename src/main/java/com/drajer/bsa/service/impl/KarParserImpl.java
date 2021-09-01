@@ -27,6 +27,7 @@ import com.drajer.bsa.utils.SubscriptionUtils;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -40,6 +41,7 @@ import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.DataRequirement;
+import org.hl7.fhir.r4.model.Endpoint;
 import org.hl7.fhir.r4.model.Expression;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.PlanDefinition;
@@ -48,6 +50,7 @@ import org.hl7.fhir.r4.model.PlanDefinition.PlanDefinitionActionComponent;
 import org.hl7.fhir.r4.model.PlanDefinition.PlanDefinitionActionConditionComponent;
 import org.hl7.fhir.r4.model.PlanDefinition.PlanDefinitionActionRelatedActionComponent;
 import org.hl7.fhir.r4.model.PrimitiveType;
+import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.ResourceType;
 import org.hl7.fhir.r4.model.TriggerDefinition;
 import org.hl7.fhir.r4.model.TriggerDefinition.TriggerType;
@@ -187,23 +190,30 @@ public class KarParserImpl implements KarParser {
         art.setKarPath(kar.getPath());
 
         List<BundleEntryComponent> entries = karBundle.getEntry();
-
+        List<ValueSet> valueSets = new ArrayList<>();
+        List<PlanDefinition> planDefinitions = new ArrayList<>();
         for (BundleEntryComponent comp : entries) {
 
           if (Optional.ofNullable(comp).isPresent()
               && comp.getResource().getResourceType() == ResourceType.ValueSet) {
             logger.debug(" Processing ValueSet ");
-            processValueSet((ValueSet) comp.getResource(), art);
+            valueSets.add((ValueSet) comp.getResource());
           } else if (Optional.ofNullable(comp).isPresent()
               && comp.getResource().getResourceType() == ResourceType.PlanDefinition) {
             logger.info(" Processing PlanDefinition ");
-            processPlanDefinition((PlanDefinition) comp.getResource(), art);
-            art.initializeRelatedActions();
+            planDefinitions.add((PlanDefinition) comp.getResource());
           } else if (Optional.ofNullable(comp).isPresent()
               && comp.getResource().getResourceType() == ResourceType.Library) {
             logger.info(" Processing Library");
+          } else if (Optional.ofNullable(comp).isPresent()) {
+            logger.info(" Adding resource to dependencies");
+            art.addDependentResource(comp.getResource());
           }
         }
+
+        valueSets.forEach(e -> processValueSet(e, art));
+        planDefinitions.forEach(e -> processPlanDefinition(e, art));
+        art.initializeRelatedActions();
 
         KnowledgeArtifactRepositorySystem.getIntance().add(art);
         art.printKarSummary();
@@ -269,7 +279,7 @@ public class KarParserImpl implements KarParser {
 
       Extension ext = plan.getExtensionByUrl(RECEIVER_ADDRESS_URL);
 
-      if (ext != null) {
+      if (ext != null && ext.hasValue()) {
 
         Type t = ext.getValue();
         if (t instanceof PrimitiveType) {
@@ -278,6 +288,13 @@ public class KarParserImpl implements KarParser {
 
             logger.info(" Found Receiver Address {}", i.getValueAsString());
             art.addReceiverAddress((UriType) i);
+          }
+        } else if (t instanceof Reference) {
+          Endpoint endpoint =
+              (Endpoint)
+                  art.getDependentResource(ResourceType.Endpoint, ((Reference) t).getReference());
+          if (endpoint.hasAddressElement()) {
+            art.addReceiverAddress(endpoint.getAddressElement());
           }
         }
       }
@@ -456,6 +473,10 @@ public class KarParserImpl implements KarParser {
     }
 
     return events;
+  }
+
+  private void setReportSubmissionEndpoint(String reportSubmissionEndpoint) {
+    this.reportSubmissionEndpoint = reportSubmissionEndpoint;
   }
 
   private void processValueSet(ValueSet vs, KnowledgeArtifact art) {
