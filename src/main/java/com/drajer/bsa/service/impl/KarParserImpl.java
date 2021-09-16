@@ -218,8 +218,11 @@ public class KarParserImpl implements KarParser {
         KnowledgeArtifactRepositorySystem.getIntance().add(art);
         art.printKarSummary();
         for (HealthcareSetting healthcareSetting : allHealthcareSettings) {
-          KarProcessingData kd = makeData(healthcareSetting, art);
-          subscriptionGeneratorService.createSubscriptions(kd);
+          if(healthcareSetting.getSubscriptionsEnabled()) {
+            KarProcessingData kd = makeData(healthcareSetting, art);
+            subscriptionGeneratorService.createSubscriptions(kd);
+          }
+
         }
 
       } else {
