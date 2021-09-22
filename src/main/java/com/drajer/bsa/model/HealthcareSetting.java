@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory;
 /**
  *
  *
- * <h1>HealthareSettings</h1>
+ * <h1>HealthcareSettings</h1>
  *
  * The Entity represents a Practice location such as a doctor's office, or a hospital or a network
  * of providers. HealthcareSettings employ EHRs and each EHR is expected to have a FHIR Server. A
@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
 @Entity
 @Table(name = "healthcare_setting")
 @DynamicUpdate
-public class HealthcareSetting {
+public class HealthcareSetting implements FhirServerDetails {
 
   @Transient private final Logger logger = LoggerFactory.getLogger(HealthcareSetting.class);
 
@@ -50,7 +50,7 @@ public class HealthcareSetting {
   /**
    * The attribute represents the client secret that is to be used for SMART on FHIR Authorization.
    */
-  @Column(name = "clientSecret", nullable = true, columnDefinition = "TEXT")
+  @Column(name = "clientSecret", columnDefinition = "TEXT")
   private String clientSecret;
 
   /**
@@ -61,14 +61,14 @@ public class HealthcareSetting {
   private String fhirServerBaseURL;
 
   /** The attribute represents the FHIR Server version of the specification supported. */
-  @Column(name = "fhir_version", nullable = true, unique = false)
+  @Column(name = "fhir_version")
   private String fhirVersion;
 
   /**
    * The attribute represents the Token URL for requesting access tokens as part of SMART on FHIR
    * Authorization. This is provided to override what is present in the CapabilityStatement.
    */
-  @Column(name = "token_url", nullable = true, columnDefinition = "TEXT")
+  @Column(name = "token_url", columnDefinition = "TEXT")
   private String tokenUrl;
 
   /**
@@ -116,7 +116,7 @@ public class HealthcareSetting {
    * populated. IF this is not populated the Recipients Address from the Knowledge Artifact will be
    * used.
    */
-  @Column(name = "rest_api_url", nullable = true)
+  @Column(name = "rest_api_url")
   private String restApiUrl;
 
   @Column(name = "aa_id", nullable = true)
@@ -128,7 +128,7 @@ public class HealthcareSetting {
    * FHIR Resources updated within time (T) - 2 hours. Where T is the time of the subscription
    * notification.
    */
-  @Column(name = "encounter_start_time", nullable = true)
+  @Column(name = "encounter_start_time")
   private String encounterStartThreshold;
 
   /**
@@ -137,7 +137,7 @@ public class HealthcareSetting {
    * FHIR Resources updated within time (T) + 3 hours. Where T is the time of the subscription
    * notification.
    */
-  @Column(name = "encounter_end_time", nullable = true)
+  @Column(name = "encounter_end_time")
   private String encounterEndThreshold;
 
   /**
@@ -145,7 +145,7 @@ public class HealthcareSetting {
    * HealthcareSetting. This is populated using the HealthcareSettingOperationalKnowledgeArtifacts
    * class which is converted to a JSON string and stored.
    */
-  @Column(name = "kars_active", nullable = true, columnDefinition = "TEXT")
+  @Column(name = "kars_active", columnDefinition = "TEXT")
   private String karsActive;
 
   /** This attribute defines the trusted third party that reports should be submitted to. */
@@ -427,7 +427,7 @@ public class HealthcareSetting {
     logger.info(" Rest API URL : {}", restApiUrl);
     logger.info(" Encounter Start Threshold : {}", encounterStartThreshold);
     logger.info(" Encounter End Threshold : {}", encounterEndThreshold);
-    logger.info(" KnowledgArtifacts Active : {}", karsActive);
+    logger.info(" KnowledgeArtifacts Active : {}", karsActive);
 
     if (kars != null) kars.log();
 
