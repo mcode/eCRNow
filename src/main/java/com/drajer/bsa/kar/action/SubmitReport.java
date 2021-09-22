@@ -9,6 +9,9 @@ import com.drajer.bsa.model.BsaTypes.BsaActionStatusType;
 import com.drajer.bsa.model.KarProcessingData;
 import java.io.IOException;
 import java.io.InputStream;
+import com.drajer.bsa.model.PublicHealthAuthority;
+import com.drajer.bsa.service.PublicHealthAuthorityService;
+import com.drajer.sof.utils.FhirContextInitializer;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
@@ -20,16 +23,20 @@ import org.hl7.fhir.r4.model.Resource;
 import org.hl7.fhir.r4.model.UriType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class SubmitReport extends BsaAction {
 
   private final Logger logger = LoggerFactory.getLogger(SubmitReport.class);
-
+  private static final String R4 = "R4";
   private String submissionEndpoint;
 
-  private static final FhirContext context = FhirContext.forR4();
+  /** The FHIR Context Initializer necessary to retrieve FHIR resources */
+  @Autowired FhirContextInitializer fhirContextInitializer;
+
+  @Autowired PublicHealthAuthorityService publicHealthAuthorityService;
 
   @Override
   public BsaActionStatus process(KarProcessingData data, EhrQueryService ehrService) {
@@ -37,7 +44,6 @@ public class SubmitReport extends BsaAction {
 
     BsaActionStatus actStatus = new SubmitReportStatus();
     actStatus.setActionId(this.getActionId());
-
     // Check Timing constraints and handle them before we evaluate conditions.
     BsaActionStatusType status = processTimingData(data);
 
@@ -45,7 +51,7 @@ public class SubmitReport extends BsaAction {
 
       List<DataRequirement> input = getInputData();
 
-      Set<Resource> resourcesToSubmit = new HashSet<Resource>();
+      Set<Resource> resourcesToSubmit = new HashSet<>();
 
       if (input != null) {
 
@@ -91,13 +97,25 @@ public class SubmitReport extends BsaAction {
       EhrQueryService ehrService,
       BsaActionStatus actStatus,
       String submissionEndpoint) {
+        FhirContext context = fhirContextInitializer.getFhirContext(R4);
+        PublicHealthAuthority pha =
+        publicHealthAuthorityService.getPublicHealthAuthorityByUrl(submissionEndpoint);
+        String token = "";
+        if (pha != null) {
+          token = ehrService.getToken(pha).getString("access_token");
+        } else {
+          logger.warn("No PHA was found with submission endpoint {}", submissionEndpoint);
+          logger.warn("Continuing without auth token");
+        }
     try (InputStream inputStream =
         SubmitReport.class.getClassLoader().getResourceAsStream("report-headers.properties")) {
       Properties headers = new Properties();
       headers.load(inputStream);
       for (Resource r : resourcesToSubmit) {
 
-        IGenericClient client = context.newRestfulGenericClient(submissionEndpoint);
+
+        IGenericClient client =
+            fhirContextInitializer.createClient(context, submissionEndpoint, token);
 
         context.getRestfulClientFactory().setSocketTimeout(30 * 1000);
 
