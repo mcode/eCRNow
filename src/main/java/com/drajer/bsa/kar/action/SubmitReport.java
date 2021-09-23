@@ -28,113 +28,111 @@ import org.springframework.stereotype.Service;
 @Service
 public class SubmitReport extends BsaAction {
 
-    private final Logger logger = LoggerFactory.getLogger(SubmitReport.class);
+  private final Logger logger = LoggerFactory.getLogger(SubmitReport.class);
 
-    private String submissionEndpoint;
+  private String submissionEndpoint;
 
-    private static final FhirContext context = FhirContext.forR4();
+  private static final FhirContext context = FhirContext.forR4();
 
-    @Override
-    public BsaActionStatus process(KarProcessingData data, EhrQueryService ehrService) {
-        logger.info(" Executing the submission of the Report to : {}", submissionEndpoint);
+  @Override
+  public BsaActionStatus process(KarProcessingData data, EhrQueryService ehrService) {
+    logger.info(" Executing the submission of the Report to : {}", submissionEndpoint);
 
-        BsaActionStatus actStatus = new SubmitReportStatus();
-        actStatus.setActionId(this.getActionId());
+    BsaActionStatus actStatus = new SubmitReportStatus();
+    actStatus.setActionId(this.getActionId());
 
-        // Check Timing constraints and handle them before we evaluate conditions.
-        BsaActionStatusType status = processTimingData(data);
+    // Check Timing constraints and handle them before we evaluate conditions.
+    BsaActionStatusType status = processTimingData(data);
 
-        if (status != BsaActionStatusType.Scheduled || getIgnoreTimers()) {
+    if (status != BsaActionStatusType.Scheduled || getIgnoreTimers()) {
 
-            List<DataRequirement> input = getInputData();
+      List<DataRequirement> input = getInputData();
 
-            Set<Resource> resourcesToSubmit = new HashSet<Resource>();
+      Set<Resource> resourcesToSubmit = new HashSet<Resource>();
 
-            if (input != null) {
-                for (DataRequirement dr : input) {
-                    Set<Resource> resources = data.getOutputDataById(dr.getId());
-                    resourcesToSubmit.addAll(resources);
-                }
-            }
+      if (input != null) {
+          for (DataRequirement dr : input) {
+              Set<Resource> resources = data.getOutputDataById(dr.getId());
+              resourcesToSubmit.addAll(resources);
+          }
+      }
 
-            if (!data.getHealthcareSetting().getTrustedThirdParty().isEmpty()) {
-                submitResources(resourcesToSubmit, data, ehrService, actStatus,
-                        data.getHealthcareSetting().getTrustedThirdParty());
-            } else if (!submissionEndpoint.isEmpty()) {
-                submitResources(resourcesToSubmit, data, ehrService, actStatus, submissionEndpoint);
-            } else {
-                Set<UriType> endpoints = data.getKar().getReceiverAddresses();
-                if (endpoints.size() > 0) {
-                    for (UriType uri : endpoints) {
-                        submitResources(resourcesToSubmit, data, ehrService, actStatus, uri.getValueAsString());
-                    }
-                }
-            }
+      if (!data.getHealthcareSetting().getTrustedThirdParty().isEmpty()) {
+          submitResources(resourcesToSubmit, data, ehrService, actStatus,
+                  data.getHealthcareSetting().getTrustedThirdParty());
+      } else if (!submissionEndpoint.isEmpty()) {
+          submitResources(resourcesToSubmit, data, ehrService, actStatus, submissionEndpoint);
+      } else {
+          Set<UriType> endpoints = data.getKar().getReceiverAddresses();
+          if (endpoints.size() > 0) {
+              for (UriType uri : endpoints) {
+                  submitResources(resourcesToSubmit, data, ehrService, actStatus, uri.getValueAsString());
+              }
+          }
+      }
 
-        } else {
+    } else {
 
-            logger.info(
-                    " Action may be executed in the future or Conditions have not been met, so cannot proceed any further. ");
-            logger.info(" Setting Action Status : {}", status);
-            actStatus.setActionStatus(status);
+      logger.info(
+          " Action may be executed in the future or Conditions have not been met, so cannot proceed any further. ");
+      logger.info(" Setting Action Status : {}", status);
+      actStatus.setActionStatus(status);
+    }
+
+    return actStatus;
+  }
+
+  private void submitResources(
+      Set<Resource> resourcesToSubmit,
+      KarProcessingData data,
+      EhrQueryService ehrService,
+      BsaActionStatus actStatus,
+      String submissionEndpoint) {
+    try (InputStream inputStream =
+        SubmitReport.class.getClassLoader().getResourceAsStream("report-headers.properties")) {
+      Properties headers = new Properties();
+      headers.load(inputStream);
+      for (Resource r : resourcesToSubmit) {
+
+        IGenericClient client = context.newRestfulGenericClient(submissionEndpoint);
+
+        context.getRestfulClientFactory().setSocketTimeout(30 * 1000);
+
+        // All submissions are expected to be bundles
+        Bundle bundleToSubmit = (Bundle) r;
+
+        IOperationProcessMsgMode<IBaseResource> operation =
+            client.operation().processMessage().setMessageBundle(bundleToSubmit);
+        headers.forEach(
+            (key, value) -> operation.withAdditionalHeader((String) key, (String) value));
+        Bundle responseBundle = (Bundle) operation.encodedJson().execute();
+
+        if (responseBundle != null) {
+          logger.info(
+              "Response Bundle:::::{}",
+              context.newJsonParser().encodeResourceToString(responseBundle));
+
+          data.addActionOutput(actionId, responseBundle);
+
+          logger.info(" Adding Response Bundle to output using id {}", responseBundle.getId());
+
+          data.addActionOutputById(responseBundle.getId(), responseBundle);
         }
 
-        return actStatus;
-    }
+        if (conditionsMet(data)) {
 
-    private void submitResources(Set<Resource> resourcesToSubmit, KarProcessingData data, EhrQueryService ehrService,
-            BsaActionStatus actStatus, String submissionEndpoint) {
-        try (InputStream inputStream = SubmitReport.class.getClassLoader()
-                .getResourceAsStream("report-headers.properties")) {
-            Properties headers = new Properties();
-            headers.load(inputStream);
-            for (Resource r : resourcesToSubmit) {
+          // Execute sub Actions
+          executeSubActions(data, ehrService);
 
-                IGenericClient client = context.newRestfulGenericClient(submissionEndpoint);
+          // Execute Related Actions.
+          executeRelatedActions(data, ehrService);
+        }
 
-                context.getRestfulClientFactory().setSocketTimeout(30 * 1000);
-
-                // All submissions are expected to be bundles
-                Bundle bundleToSubmit = (Bundle) r;
-
-                IOperationProcessMsgMode<IBaseResource> operation = client.operation().processMessage()
-                        .setMessageBundle(bundleToSubmit);
-                headers.forEach((key, value) -> operation.withAdditionalHeader((String) key, (String) value));
-                Bundle responseBundle = (Bundle) operation.encodedJson().execute();
-
-                if (responseBundle != null) {
-                    logger.info("Response Bundle:::::{}",
-                            context.newJsonParser().encodeResourceToString(responseBundle));
-
-                    data.addActionOutput(actionId, responseBundle);
-
-                    logger.info(" Adding Response Bundle to output using id {}", responseBundle.getId());
-
-                    data.addActionOutputById(responseBundle.getId(), responseBundle);
-                }
-
-                if (conditionsMet(data)) {
-
-                    // Execute sub Actions
-                    executeSubActions(data, ehrService);
-
-                    // Execute Related Actions.
-                    executeRelatedActions(data, ehrService);
-                }
-
-                actStatus.setActionStatus(BsaActionStatusType.Completed);
-            }
-        } catch (IOException ex) {
-            logger.error("Error while loading Action Classes from Proporties File ");
-        } // for all resources to be submitted
-    }
-
-    public String getSubmissionEndpoint() {
-        return submissionEndpoint;
-    }
-
-  public void setSubmissionEndpoint(String submissionEndpoint) {
-    this.submissionEndpoint = submissionEndpoint;
+        actStatus.setActionStatus(BsaActionStatusType.Completed);
+      }
+    } catch (IOException ex) {
+      logger.error("Error while loading Action Classes from Proporties File ");
+    } // for all resources to be submitted
   }
 
   private static int count = 1;
@@ -161,5 +159,13 @@ public class SubmitReport extends BsaAction {
     } catch (IOException e) {
       logger.debug(" Unable to write data to file: {}", fileName, e);
     }
+  }
+
+  public String getSubmissionEndpoint() {
+    return submissionEndpoint;
+  }
+
+  public void setSubmissionEndpoint(String submissionEndpoint) {
+    this.submissionEndpoint = submissionEndpoint;
   }
 }
