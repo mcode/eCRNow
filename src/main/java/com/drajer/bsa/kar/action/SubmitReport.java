@@ -2,13 +2,18 @@ package com.drajer.bsa.kar.action;
 
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
+import ca.uhn.fhir.rest.gclient.IOperationProcessMsgMode;
 import com.drajer.bsa.ehr.service.EhrQueryService;
 import com.drajer.bsa.kar.model.BsaAction;
 import com.drajer.bsa.model.BsaTypes.BsaActionStatusType;
 import com.drajer.bsa.model.KarProcessingData;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Properties;
 import java.util.Set;
+import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.DataRequirement;
 import org.hl7.fhir.r4.model.Resource;
@@ -86,46 +91,50 @@ public class SubmitReport extends BsaAction {
       EhrQueryService ehrService,
       BsaActionStatus actStatus,
       String submissionEndpoint) {
-    for (Resource r : resourcesToSubmit) {
+    try (InputStream inputStream =
+        SubmitReport.class.getClassLoader().getResourceAsStream("report-headers.properties")) {
+      Properties headers = new Properties();
+      headers.load(inputStream);
+      for (Resource r : resourcesToSubmit) {
 
-      IGenericClient client = context.newRestfulGenericClient(submissionEndpoint);
+        IGenericClient client = context.newRestfulGenericClient(submissionEndpoint);
 
-      context.getRestfulClientFactory().setSocketTimeout(30 * 1000);
+        context.getRestfulClientFactory().setSocketTimeout(30 * 1000);
 
-      // All submissions are expected to be bundles
-      Bundle bundleToSubmit = (Bundle) r;
+        // All submissions are expected to be bundles
+        Bundle bundleToSubmit = (Bundle) r;
 
-      Bundle responseBundle =
-          (Bundle)
-              client
-                  .operation()
-                  .processMessage()
-                  .setMessageBundle(bundleToSubmit)
-                  .encodedJson()
-                  .execute();
+        IOperationProcessMsgMode<IBaseResource> operation =
+            client.operation().processMessage().setMessageBundle(bundleToSubmit);
+        headers.forEach(
+            (key, value) -> operation.withAdditionalHeader((String) key, (String) value));
+        Bundle responseBundle = (Bundle) operation.encodedJson().execute();
 
-      if (responseBundle != null) {
-        logger.info(
-            "Response Bundle:::::{}",
-            context.newJsonParser().encodeResourceToString(responseBundle));
+        if (responseBundle != null) {
+          logger.info(
+              "Response Bundle:::::{}",
+              context.newJsonParser().encodeResourceToString(responseBundle));
 
-        data.addActionOutput(actionId, responseBundle);
+          data.addActionOutput(actionId, responseBundle);
 
-        logger.info(" Adding Response Bundle to output using id {}", responseBundle.getId());
+          logger.info(" Adding Response Bundle to output using id {}", responseBundle.getId());
 
-        data.addActionOutputById(responseBundle.getId(), responseBundle);
+          data.addActionOutputById(responseBundle.getId(), responseBundle);
+        }
+
+        if (conditionsMet(data)) {
+
+          // Execute sub Actions
+          executeSubActions(data, ehrService);
+
+          // Execute Related Actions.
+          executeRelatedActions(data, ehrService);
+        }
+
+        actStatus.setActionStatus(BsaActionStatusType.Completed);
       }
-
-      if (conditionsMet(data)) {
-
-        // Execute sub Actions
-        executeSubActions(data, ehrService);
-
-        // Execute Related Actions.
-        executeRelatedActions(data, ehrService);
-      }
-
-      actStatus.setActionStatus(BsaActionStatusType.Completed);
+    } catch (IOException ex) {
+      logger.error("Error while loading Action Classes from Proporties File ");
     } // for all resources to be submitted
   }
 
