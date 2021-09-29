@@ -66,15 +66,6 @@ public class BackendAuthorizationServiceImpl implements EhrAuthorizationService 
     String baseUrl = fsd.getFhirServerBaseURL();
     try {
       return connectToServer(baseUrl, fsd);
-      //      return tokenResponse.getString("access_token");
-      //      kd.getNotificationContext()
-      //          .setEhrAccessTokenExpiryDuration(tokenResponse.getInt("expires_in"));
-      //
-      //      Integer expiresInSec = (Integer) tokenResponse.get("expires_in");
-      //      Instant expireInstantTime = new
-      // Date().toInstant().plusSeconds(Long.valueOf(expiresInSec));
-      //
-      // kd.getNotificationContext().setEhrAccessTokenExpirationTime(Date.from(expireInstantTime));
     } catch (Exception e) {
       logger.error(
           "Error in Getting the AccessToken for the client: {}", fsd.getFhirServerBaseURL(), e);
