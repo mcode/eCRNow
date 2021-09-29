@@ -37,7 +37,7 @@ public class PublicHealthAuthorityController {
 
     if (pha_current == null) {
 
-      logger.info("Healthcare Setting does not exist, Saving the Healthcare Settings");
+      logger.info("Public Health Authority does not exist, Saving the Public Health Authority");
 
       publicHealthAuthorityService.saveOrUpdate(pha);
 
