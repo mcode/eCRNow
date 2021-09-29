@@ -7,14 +7,14 @@ import com.drajer.bsa.ehr.service.EhrQueryService;
 import com.drajer.bsa.kar.model.BsaAction;
 import com.drajer.bsa.model.BsaTypes.BsaActionStatusType;
 import com.drajer.bsa.model.KarProcessingData;
+import com.drajer.bsa.model.PublicHealthAuthority;
+import com.drajer.bsa.service.PublicHealthAuthorityService;
+import com.drajer.sof.utils.FhirContextInitializer;
 import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import com.drajer.bsa.model.PublicHealthAuthority;
-import com.drajer.bsa.service.PublicHealthAuthorityService;
-import com.drajer.sof.utils.FhirContextInitializer;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
@@ -94,32 +94,31 @@ public class SubmitReport extends BsaAction {
       EhrQueryService ehrService,
       BsaActionStatus actStatus,
       String submissionEndpoint) {
-        FhirContext context = fhirContextInitializer.getFhirContext(R4);
-        PublicHealthAuthority pha;
-        if (submissionEndpoint.endsWith("/")) {
-          submissionEndpoint = submissionEndpoint.substring(0, submissionEndpoint.length() - 1);
-        }
-        pha = publicHealthAuthorityService.getPublicHealthAuthorityByUrl(submissionEndpoint);
-        if (pha == null) {
-          if (!submissionEndpoint.endsWith("$process-message")) {
-            pha =
-                publicHealthAuthorityService.getPublicHealthAuthorityByUrl(
-                    String.format("%s/$process-message", submissionEndpoint));
-          }
-        }
-        String token = "";
-        if (pha != null) {
-          token = ehrService.getToken(pha).getString("access_token");
-        } else {
-          logger.warn("No PHA was found with submission endpoint {}", submissionEndpoint);
-          logger.warn("Continuing without auth token");
-        }
+    FhirContext context = fhirContextInitializer.getFhirContext(R4);
+    PublicHealthAuthority pha;
+    if (submissionEndpoint.endsWith("/")) {
+      submissionEndpoint = submissionEndpoint.substring(0, submissionEndpoint.length() - 1);
+    }
+    pha = publicHealthAuthorityService.getPublicHealthAuthorityByUrl(submissionEndpoint);
+    if (pha == null) {
+      if (!submissionEndpoint.endsWith("$process-message")) {
+        pha =
+            publicHealthAuthorityService.getPublicHealthAuthorityByUrl(
+                String.format("%s/$process-message", submissionEndpoint));
+      }
+    }
+    String token = "";
+    if (pha != null) {
+      token = ehrService.getToken(pha).getString("access_token");
+    } else {
+      logger.warn("No PHA was found with submission endpoint {}", submissionEndpoint);
+      logger.warn("Continuing without auth token");
+    }
     try (InputStream inputStream =
         SubmitReport.class.getClassLoader().getResourceAsStream("report-headers.properties")) {
       Properties headers = new Properties();
       headers.load(inputStream);
       for (Resource r : resourcesToSubmit) {
-
 
         IGenericClient client =
             fhirContextInitializer.createClient(context, submissionEndpoint, token);

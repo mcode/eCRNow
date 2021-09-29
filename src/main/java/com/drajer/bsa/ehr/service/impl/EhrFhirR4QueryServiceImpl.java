@@ -143,9 +143,7 @@ public class EhrFhirR4QueryServiceImpl implements EhrQueryService {
     JSONObject token = getToken(kd.getHealthcareSetting());
 
     return fhirContextInitializer.createClient(
-        context,
-        kd.getHealthcareSetting().getFhirServerBaseURL(),
-        token.getString("access_token"));
+        context, kd.getHealthcareSetting().getFhirServerBaseURL(), token.getString("access_token"));
   }
 
   /**
@@ -177,7 +175,7 @@ public class EhrFhirR4QueryServiceImpl implements EhrQueryService {
     IGenericClient client = getClient(kd, context);
     client.delete().resourceById(resourceType.toString(), id).execute();
   }
-  
+
   public JSONObject getToken(FhirServerDetails fsd) {
     String secret = fsd.getClientSecret();
     if (secret == null || secret.isEmpty()) {
