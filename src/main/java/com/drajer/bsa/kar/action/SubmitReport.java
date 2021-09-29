@@ -95,8 +95,18 @@ public class SubmitReport extends BsaAction {
       BsaActionStatus actStatus,
       String submissionEndpoint) {
         FhirContext context = fhirContextInitializer.getFhirContext(R4);
-        PublicHealthAuthority pha =
-        publicHealthAuthorityService.getPublicHealthAuthorityByUrl(submissionEndpoint);
+        PublicHealthAuthority pha;
+        if (submissionEndpoint.endsWith("/")) {
+          submissionEndpoint = submissionEndpoint.substring(0, submissionEndpoint.length() - 1);
+        }
+        pha = publicHealthAuthorityService.getPublicHealthAuthorityByUrl(submissionEndpoint);
+        if (pha == null) {
+          if (!submissionEndpoint.endsWith("$process-message")) {
+            pha =
+                publicHealthAuthorityService.getPublicHealthAuthorityByUrl(
+                    String.format("%s/$process-message", submissionEndpoint));
+          }
+        }
         String token = "";
         if (pha != null) {
           token = ehrService.getToken(pha).getString("access_token");
