@@ -31,8 +31,12 @@ public class PublicHealthAuthorityDaoImpl extends AbstractDao implements PublicH
     CriteriaBuilder cb = session.getCriteriaBuilder();
     CriteriaQuery<PublicHealthAuthority> criteria = cb.createQuery(PublicHealthAuthority.class);
     Root<PublicHealthAuthority> root = criteria.from(PublicHealthAuthority.class);
-    criteria.select(root).where(cb.equal(root.get("fhirServerURL"), url)).distinct(true);
-    return session.createQuery(criteria).getSingleResult();
+    criteria.select(root).where(cb.equal(root.get("fhirServerBaseURL"), url)).distinct(true);
+    List<PublicHealthAuthority> results = session.createQuery(criteria).getResultList();
+    // getSingleResult throws an exception if not found
+    if (results.isEmpty()) return null;
+
+    return results.get(0);
   }
 
   @Override

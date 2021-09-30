@@ -62,9 +62,11 @@ import org.hl7.fhir.r4.model.ValueSet;
 import org.opencds.cqf.cql.evaluator.measure.r4.R4MeasureProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
@@ -91,11 +93,15 @@ public class KarParserImpl implements KarParser {
   @Value("${ignore.timers}")
   Boolean ignoreTimers;
 
+<<<<<<< HEAD
   @Value("${measure-reporting-period.start}")
   String measurePeriodStart;
 
   @Value("${measure-reporting-period.end}")
   String measurePeriodEnd;
+=======
+  @Autowired ApplicationContext applicationContext;
+>>>>>>> 9eaa97d (fixes based on integration testing)
 
   @Autowired BsaServiceUtils utils;
 
@@ -149,13 +155,24 @@ public class KarParserImpl implements KarParser {
 
     BsaAction instance = null;
     if (actionClasses != null && actionClasses.containsKey(actionId)) {
+      String className = actionClasses.get(actionId);
+      Class<?> klass = null;
       try {
-        instance = (BsaAction) (Class.forName(actionClasses.get(actionId)).newInstance());
-      } catch (InstantiationException e) {
-        logger.error(" Error instantiating the object {}", e);
-      } catch (IllegalAccessException e) {
-        logger.error(" Error instantiating the object {}", e);
-      } catch (ClassNotFoundException e) {
+        klass = Class.forName(className);
+        // get the class through spring to ensure the autowired pieces get wired
+        instance = (BsaAction) applicationContext.getBean(klass);
+      } catch (NoSuchBeanDefinitionException e) {
+        try {
+          if (klass != null) {
+            // fall back to the usual way
+            // note that if the class.forname fails it won't throw a nosuchbean exception
+            // so we know it won't actually be null anyway
+            instance = (BsaAction) klass.newInstance();
+          }
+        } catch (Exception e2) {
+          logger.error(" Error instantiating the object {}", e2);
+        }
+      } catch (Exception e) {
         logger.error(" Error instantiating the object {}", e);
       }
     }
