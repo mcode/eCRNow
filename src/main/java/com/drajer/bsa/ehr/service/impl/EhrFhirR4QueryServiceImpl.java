@@ -5,8 +5,11 @@ import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 import com.drajer.bsa.ehr.service.EhrAuthorizationService;
 import com.drajer.bsa.ehr.service.EhrQueryService;
+import com.drajer.bsa.model.FhirServerDetails;
 import com.drajer.bsa.model.KarProcessingData;
 import com.drajer.sof.utils.FhirContextInitializer;
+import java.time.Instant;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -19,6 +22,7 @@ import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.IdType;
 import org.hl7.fhir.r4.model.Resource;
 import org.hl7.fhir.r4.model.ResourceType;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,7 +72,13 @@ public class EhrFhirR4QueryServiceImpl implements EhrQueryService {
   @Override
   public HashMap<ResourceType, Set<Resource>> getFilteredData(
       KarProcessingData kd, HashMap<String, ResourceType> resTypes) {
+    JSONObject tokenResponse = getToken(kd.getHealthcareSetting());
+    kd.getNotificationContext().setEhrAccessToken(tokenResponse.getString("access_token"));
+    kd.getNotificationContext().setEhrAccessTokenExpiryDuration(tokenResponse.getInt("expires_in"));
 
+    Integer expiresInSec = (Integer) tokenResponse.get("expires_in");
+    Instant expireInstantTime = new Date().toInstant().plusSeconds(Long.valueOf(expiresInSec));
+    kd.getNotificationContext().setEhrAccessTokenExpirationTime(Date.from(expireInstantTime));
     logger.info(" Getting FHIR Context for R4");
     FhirContext context = fhirContextInitializer.getFhirContext(R4);
 
@@ -127,17 +137,10 @@ public class EhrFhirR4QueryServiceImpl implements EhrQueryService {
    * @return
    */
   public IGenericClient getClient(KarProcessingData kd, FhirContext context) {
-    String secret = kd.getHealthcareSetting().getClientSecret();
-    if (secret == null || secret.isEmpty()) {
-      backendAuthorizationService.getAuthorizationToken(kd);
-    } else {
-      ehrAuthorizationService.getAuthorizationToken(kd);
-    }
+    JSONObject token = getToken(kd.getHealthcareSetting());
 
     return fhirContextInitializer.createClient(
-        context,
-        kd.getHealthcareSetting().getFhirServerBaseURL(),
-        kd.getNotificationContext().getEhrAccessToken());
+        context, kd.getHealthcareSetting().getFhirServerBaseURL(), token.getString("access_token"));
   }
 
   /**
@@ -168,6 +171,15 @@ public class EhrFhirR4QueryServiceImpl implements EhrQueryService {
     logger.info("Initializing FHIR Client");
     IGenericClient client = getClient(kd, context);
     client.delete().resourceById(resourceType.toString(), id).execute();
+  }
+
+  public JSONObject getToken(FhirServerDetails fsd) {
+    String secret = fsd.getClientSecret();
+    if (secret == null || secret.isEmpty()) {
+      return backendAuthorizationService.getAuthorizationToken(fsd);
+    } else {
+      return ehrAuthorizationService.getAuthorizationToken(fsd);
+    }
   }
 
   public Resource getResourceById(
@@ -207,9 +219,9 @@ public class EhrFhirR4QueryServiceImpl implements EhrQueryService {
       String id) {
 
     logger.info("Invoking search url : {}", searchUrl);
-    Set<Resource> resources = null;
-    HashMap<ResourceType, Set<Resource>> resMap = null;
-    HashMap<String, Set<Resource>> resMapById = null;
+    Set<Resource> resources;
+    HashMap<ResourceType, Set<Resource>> resMap;
+    HashMap<String, Set<Resource>> resMapById;
 
     try {
       logger.info(
@@ -229,7 +241,7 @@ public class EhrFhirR4QueryServiceImpl implements EhrQueryService {
 
         if (bc != null) {
 
-          resources = new HashSet<Resource>();
+          resources = new HashSet<>();
           resMap = new HashMap<>();
           resMapById = new HashMap<>();
           for (BundleEntryComponent comp : bc) {

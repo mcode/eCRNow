@@ -1,10 +1,12 @@
 package com.drajer.bsa.ehr.service;
 
+import com.drajer.bsa.model.FhirServerDetails;
 import com.drajer.bsa.model.KarProcessingData;
 import java.util.HashMap;
 import java.util.Set;
 import org.hl7.fhir.r4.model.Resource;
 import org.hl7.fhir.r4.model.ResourceType;
+import org.json.JSONObject;
 
 /**
  *
@@ -30,4 +32,11 @@ public interface EhrQueryService {
   void createResource(KarProcessingData kd, Resource resource);
 
   void deleteResource(KarProcessingData kd, ResourceType resourceType, String id);
+  /**
+   * This method is used to get an auth token for accessing the Ehr.
+   *
+   * @param fsd The processing context which contains information such as patient, encounter,
+   *     previous data etc.
+   */
+  JSONObject getToken(FhirServerDetails fsd);
 }
