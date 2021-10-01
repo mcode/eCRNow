@@ -156,19 +156,23 @@ public class PublicHealthAuthority implements FhirServerDetails {
 
   @Override
   public Boolean getRequireAud() {
-    return null;
+    return requireAud;
   }
 
   @Override
-  public void setRequireAud(Boolean requireAud) {}
+  public void setRequireAud(Boolean requireAud) {
+    this.requireAud = requireAud;
+  }
 
   @Override
   public String getAuthType() {
-    return null;
+    return authType;
   }
 
   @Override
-  public void setAuthType(String authType) {}
+  public void setAuthType(String authType) {
+    this.authType = authType;
+  }
 
   public void log() {
 
