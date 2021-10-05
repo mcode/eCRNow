@@ -56,6 +56,10 @@ public class EhrFhirR4QueryServiceImpl implements EhrQueryService {
   @Autowired
   EhrAuthorizationService ehrAuthorizationService;
 
+  @Qualifier("passwordauth")
+  @Autowired
+  PasswordAuthorizationServiceImpl passwordAuthorizationService;
+
   private static final String R4 = "R4";
   private static final String PATIENT_RESOURCE = "Patient";
   private static final String PATIENT_CONTEXT = "patientContext";
@@ -191,8 +195,11 @@ public class EhrFhirR4QueryServiceImpl implements EhrQueryService {
   }
 
   public JSONObject getToken(FhirServerDetails fsd) {
+    String password = fsd.getPassword();
     String secret = fsd.getClientSecret();
-    if (secret == null || secret.isEmpty()) {
+    if (password != null && !password.isEmpty()) {
+      return passwordAuthorizationService.getAuthorizationToken(fsd);
+    } else if (secret == null || secret.isEmpty()) {
       return backendAuthorizationService.getAuthorizationToken(fsd);
     } else {
       return ehrAuthorizationService.getAuthorizationToken(fsd);
