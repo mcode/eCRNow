@@ -31,6 +31,8 @@ public interface EhrQueryService {
 
   void createResource(KarProcessingData kd, Resource resource);
 
+  void updateResource(KarProcessingData kd, Resource resource);
+
   void deleteResource(KarProcessingData kd, ResourceType resourceType, String id);
   /**
    * This method is used to get an auth token for accessing the Ehr.

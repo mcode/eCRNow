@@ -161,6 +161,20 @@ public class EhrFhirR4QueryServiceImpl implements EhrQueryService {
   }
 
   /**
+   * @param kd The KarProcessingData includes data about the fhir server to update a resource on
+   * @param resource the resource (with ID) to update on the fhir server
+   */
+  public void updateResource(KarProcessingData kd, Resource resource) {
+
+    logger.info(" Getting FHIR Context for R4");
+    FhirContext context = fhirContextInitializer.getFhirContext(R4);
+
+    logger.info("Initializing FHIR Client");
+    IGenericClient client = getClient(kd, context);
+    client.update().resource(resource).execute();
+  }
+
+  /**
    * @param kd The KarProcessingData which contains information about the fhir server
    * @param resourceType The resource type of the resource to be deleted
    * @param id The logical ID of the resource to be deleted
