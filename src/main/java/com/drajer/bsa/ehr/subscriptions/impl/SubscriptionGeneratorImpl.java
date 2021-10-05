@@ -65,7 +65,9 @@ public class SubscriptionGeneratorImpl implements SubscriptionGeneratorService {
         List<Subscription> subscriptionResources =
             subscriptionsFromBundle(kd.getKar().getOriginalKarBundle());
         for (Subscription sub : subscriptionResources) {
-          ehrQueryService.createResource(kd, sub);
+          // use an update to do a PUT on the server rather than a POST.
+          // this way we don't create duplicate subscriptions when we restart this app
+          ehrQueryService.updateResource(kd, sub);
           subscriptions.add(sub.getId());
         }
       }
