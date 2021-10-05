@@ -178,7 +178,7 @@ public class SubscriptionGeneratorImpl implements SubscriptionGeneratorService {
       subscription.setMeta(new Meta().addProfile(BACKPORT_SUBSCRIPTION));
       subscription.addExtension(
           BACKPORT_TOPIC,
-          new UriType(String.format("http://example.org/medmorph/subscriptiontopic/%s", code)));
+          new UriType(String.format("http://hl7.org/fhir/us/medmorph/SubscriptionTopic/%s", code)));
       CodeType _payload = new CodeType("application/fhir+json");
       _payload.addExtension(BACKPORT_PAYLOAD, new CodeType("full-resource"));
       subscriptionChannelComponent.setPayloadElement(_payload);
