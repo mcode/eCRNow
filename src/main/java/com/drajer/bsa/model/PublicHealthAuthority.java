@@ -41,6 +41,17 @@ public class PublicHealthAuthority implements FhirServerDetails {
   @Column(name = "clientSecret", columnDefinition = "TEXT")
   private String clientSecret;
 
+  /** The attribute represents a username that may be used with password-based Authorization. */
+  @Column(name = "username", columnDefinition = "TEXT")
+  private String username;
+
+  /**
+   * The attribute represents a password associated with the username for password-based
+   * authorization.
+   */
+  @Column(name = "password", columnDefinition = "TEXT")
+  private String password;
+
   /**
    * The attribute represents the FHIR Server URL for the PublicHealthAuthority. This is unique for
    * the entire table.
@@ -104,6 +115,22 @@ public class PublicHealthAuthority implements FhirServerDetails {
 
   public void setClientSecret(String clientSecret) {
     this.clientSecret = clientSecret;
+  }
+
+  public String getUsername() {
+    return username;
+  }
+
+  public void setUsername(String username) {
+    this.username = username;
+  }
+
+  public String getPassword() {
+    return password;
+  }
+
+  public void setPassword(String password) {
+    this.password = password;
   }
 
   public String getFhirServerBaseURL() {

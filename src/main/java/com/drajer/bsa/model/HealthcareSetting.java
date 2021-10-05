@@ -319,6 +319,21 @@ public class HealthcareSetting implements FhirServerDetails {
     this.orgId = orgId;
   }
 
+  // NOTE: username and password are stubbed out with no data model changes
+  // because for the pilot we don't care about password auth on the EHR side
+  // only on the PHA side
+  public String getUsername() {
+    return null;
+  }
+
+  public void setUsername(String username) {}
+
+  public String getPassword() {
+    return null;
+  }
+
+  public void setPassword(String password) {}
+
   public void log() {
 
     logger.info(" **** Printing HealthcareSetting Details **** ");
