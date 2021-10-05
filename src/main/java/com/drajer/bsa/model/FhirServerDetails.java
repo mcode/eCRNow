@@ -16,6 +16,14 @@ public interface FhirServerDetails {
 
   void setClientSecret(String clientSecret);
 
+  String getUsername();
+
+  void setUsername(String username);
+
+  String getPassword();
+
+  void setPassword(String password);
+
   String getFhirServerBaseURL();
 
   void setFhirServerBaseURL(String fhirServerBaseURL);
