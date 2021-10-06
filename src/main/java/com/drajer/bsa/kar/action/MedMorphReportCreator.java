@@ -155,14 +155,27 @@ public class MedMorphReportCreator extends ReportCreator {
 
     HashMap<ResourceType, Set<Resource>> resources = kd.getFhirInputData();
 
+    String fhirBase = kd.getHealthcareSetting().getFhirServerBaseURL();
+
     for (Map.Entry<ResourceType, Set<Resource>> res : resources.entrySet()) {
 
       Set<Resource> entries = res.getValue();
 
       for (Resource r : entries) {
-
-        logger.info(" Adding Resource Id : {} of Type {}", r.getId(), r.getResourceType());
-        becs.add(new BundleEntryComponent().setResource(r));
+        String id = r.getId();
+        String resourceType = r.getResourceType().toString();
+        String fullUrl;
+        if (id.startsWith("http")) {
+          // id is already the full URL
+          fullUrl = id;
+        } else if (id.startsWith(resourceType)) {
+          // id is something like "Observation/1235"
+          fullUrl = fhirBase + "/" + id;
+        } else {
+          fullUrl = fhirBase + "/" + resourceType + "/" + id;
+        }
+        logger.info(" Adding Resource Id : {} of Type {}", id, resourceType);
+        becs.add(new BundleEntryComponent().setResource(r).setFullUrl(fullUrl));
       }
     }
   }
