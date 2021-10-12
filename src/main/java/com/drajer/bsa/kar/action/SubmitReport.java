@@ -57,24 +57,28 @@ public class SubmitReport extends BsaAction {
       Set<Resource> resourcesToSubmit = new HashSet<>();
 
       if (input != null) {
-          for (DataRequirement dr : input) {
-              Set<Resource> resources = data.getOutputDataById(dr.getId());
-              resourcesToSubmit.addAll(resources);
-          }
+        for (DataRequirement dr : input) {
+          Set<Resource> resources = data.getOutputDataById(dr.getId());
+          resourcesToSubmit.addAll(resources);
+        }
       }
 
       if (!data.getHealthcareSetting().getTrustedThirdParty().isEmpty()) {
-          submitResources(resourcesToSubmit, data, ehrService, actStatus,
-                  data.getHealthcareSetting().getTrustedThirdParty());
+        submitResources(
+            resourcesToSubmit,
+            data,
+            ehrService,
+            actStatus,
+            data.getHealthcareSetting().getTrustedThirdParty());
       } else if (!submissionEndpoint.isEmpty()) {
-          submitResources(resourcesToSubmit, data, ehrService, actStatus, submissionEndpoint);
+        submitResources(resourcesToSubmit, data, ehrService, actStatus, submissionEndpoint);
       } else {
-          Set<UriType> endpoints = data.getKar().getReceiverAddresses();
-          if (endpoints.size() > 0) {
-              for (UriType uri : endpoints) {
-                  submitResources(resourcesToSubmit, data, ehrService, actStatus, uri.getValueAsString());
-              }
+        Set<UriType> endpoints = data.getKar().getReceiverAddresses();
+        if (endpoints.size() > 0) {
+          for (UriType uri : endpoints) {
+            submitResources(resourcesToSubmit, data, ehrService, actStatus, uri.getValueAsString());
           }
+        }
       }
 
     } else {
