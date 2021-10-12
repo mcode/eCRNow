@@ -179,6 +179,7 @@ public class SubmitReport extends BsaAction {
             + count
             + ".json";
 
+    FhirContext context = fhirContextInitializer.getFhirContext(R4);
     String data = context.newJsonParser().encodeResourceToString(res);
 
     try (DataOutputStream outStream =
