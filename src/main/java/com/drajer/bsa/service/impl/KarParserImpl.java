@@ -1,7 +1,6 @@
 package com.drajer.bsa.service.impl;
 
 import ca.uhn.fhir.parser.IParser;
-
 import com.drajer.bsa.dao.HealthcareSettingsDao;
 import com.drajer.bsa.ehr.service.EhrQueryService;
 import com.drajer.bsa.ehr.subscriptions.SubscriptionGeneratorService;
@@ -93,15 +92,13 @@ public class KarParserImpl implements KarParser {
   @Value("${ignore.timers}")
   Boolean ignoreTimers;
 
-<<<<<<< HEAD
   @Value("${measure-reporting-period.start}")
   String measurePeriodStart;
 
   @Value("${measure-reporting-period.end}")
   String measurePeriodEnd;
-=======
+
   @Autowired ApplicationContext applicationContext;
->>>>>>> 9eaa97d (fixes based on integration testing)
 
   @Autowired BsaServiceUtils utils;
 
@@ -265,15 +262,15 @@ public class KarParserImpl implements KarParser {
       List<HealthcareSetting> allHealthcareSettings = hsDao.getAllHealthcareSettings();
 
       for (HealthcareSetting healthcareSetting : allHealthcareSettings) {
-        if(healthcareSetting.getSubscriptionsEnabled()) {
+        if (healthcareSetting.getSubscriptionsEnabled()) {
           KarProcessingData kd = makeData(healthcareSetting, art);
           subscriptionGeneratorService.createSubscriptions(kd);
         }
       }
-      
+
       KnowledgeArtifactRepositorySystem.getInstance().add(art);
       art.printKarSummary();
-      
+
     } else {
 
       logger.error(
