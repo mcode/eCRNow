@@ -47,7 +47,7 @@ The following technologies should have been installed on your machine where you 
 
 1. Clone the repository
 
-```git clone https://github.com/drajer-health/eCRNow.git```
+```git clone https://github.com/mcode/eCRNow.git```
 
 2. Create a PostgresSQL database that you will use for the project.
 
