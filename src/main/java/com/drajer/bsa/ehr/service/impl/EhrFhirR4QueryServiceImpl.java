@@ -210,7 +210,6 @@ public class EhrFhirR4QueryServiceImpl implements EhrQueryService {
         resMapById.put(id, resources);
         kd.addResourcesByType(resMap);
         kd.addResourcesById(resMapById);
-        getResourcesByPatientId(client, context, type.toString(), url, kd, type, id);
       }
     }
 
