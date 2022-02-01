@@ -3,7 +3,9 @@ package com.drajer.bsa.ehr.service;
 import com.drajer.bsa.model.FhirServerDetails;
 import com.drajer.bsa.model.KarProcessingData;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Set;
+import org.hl7.fhir.r4.model.DataRequirement;
 import org.hl7.fhir.r4.model.Resource;
 import org.hl7.fhir.r4.model.ResourceType;
 import org.json.JSONObject;
@@ -28,6 +30,17 @@ public interface EhrQueryService {
    */
   HashMap<ResourceType, Set<Resource>> getFilteredData(
       KarProcessingData kd, HashMap<String, ResourceType> resTypes);
+
+  /**
+   * The method is used to retrieve data from the Ehr.
+   *
+   * @param kd The processing context which contains information such as patient, encounter,
+   *     previous data etc.
+   * @param dRequirements The list of data requirements to get the data for.
+   * @return The Map of Resources to its type.
+   */
+  HashMap<ResourceType, Set<Resource>> getFilteredData(
+      KarProcessingData kd, List<DataRequirement> dRequirements);
 
   void createResource(KarProcessingData kd, Resource resource);
 

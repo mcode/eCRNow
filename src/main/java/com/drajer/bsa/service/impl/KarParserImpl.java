@@ -207,7 +207,7 @@ public class KarParserImpl implements KarParser {
   public void loadKarsFromDirectory(String dirName) {
 
     // Load each of the Knowledge Artifact Bundles.
-    File folder = new File(karDirectory);
+    File folder = new File(dirName);
     List<File> kars = (List<File>) FileUtils.listFiles(folder, KAR_FILE_EXT, true);
     for (File kar : kars) {
 

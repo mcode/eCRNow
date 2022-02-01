@@ -34,10 +34,10 @@ public class CreateReport extends BsaAction {
           " Action {} can proceed as it does not have timing information ", this.getActionId());
 
       // Get the Resources that need to be retrieved.
-      HashMap<String, ResourceType> resourceTypes = getInputResourceTypes();
-
+      List<DataRequirement> inputRequirements = getInputData();
       // Get necessary data to process.
-      HashMap<ResourceType, Set<Resource>> res = ehrService.getFilteredData(data, resourceTypes);
+      HashMap<ResourceType, Set<Resource>> res =
+          ehrService.getFilteredData(data, inputRequirements);
 
       // Get the Output Data Requirement to determine the type of bundle to create.
       for (DataRequirement dr : outputData) {
