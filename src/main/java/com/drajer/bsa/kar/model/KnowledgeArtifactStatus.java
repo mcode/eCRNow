@@ -97,8 +97,8 @@ public class KnowledgeArtifactStatus {
    * The list of subscriptions that have been enabled by the KnowledgeArtifact for the specific
    * HealthcareSetting.
    */
-  //  @Column(name = "subscriptions", columnDefinition = "TEXT")
-  //  @Type(type = "StringJsonObject")
+  @Column(name = "subscriptions", columnDefinition = "TEXT")
+  @Type(type = "StringJsonObject")
   Set<String> subscriptions;
 
   @Column(name = "is_only_covid", nullable = false)

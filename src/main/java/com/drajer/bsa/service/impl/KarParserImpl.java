@@ -109,8 +109,6 @@ public class KarParserImpl implements KarParser {
   @Value("${fhirpath.enabled:true}")
   Boolean fhirpathEnabled;
 
-  @Autowired SubscriptionGenerator subscriptionGenerator;
-
   @Autowired BsaServiceUtils utils;
 
   @Autowired HealthcareSettingsDao hsDao;
@@ -274,7 +272,7 @@ public class KarParserImpl implements KarParser {
       }
 
       valueSets.forEach(e -> processValueSet(e, art));
-      planDefinitions.forEach(e -> processPlanDefinition(e, art));
+      planDefinitions.forEach(e -> processPlanDefinition(e, art, kar));
       art.initializeRelatedActions();
 
       List<HealthcareSetting> allHealthcareSettings = hsDao.getAllHealthcareSettings();
@@ -297,7 +295,6 @@ public class KarParserImpl implements KarParser {
     }
   }
 
-
   private KarProcessingData makeData(HealthcareSetting hs, KnowledgeArtifact art) {
     KarProcessingData kd = new KarProcessingData();
     kd.setHealthcareSetting(hs);
@@ -311,8 +308,8 @@ public class KarParserImpl implements KarParser {
     return kd;
   }
 
-    private void processPlanDefinition(
-            PlanDefinition plan, KnowledgeArtifact art, File karBundleFile) {
+  private void processPlanDefinition(
+      PlanDefinition plan, KnowledgeArtifact art, File karBundleFile) {
     processExtensions(plan, art);
     List<PlanDefinitionActionComponent> actions = plan.getAction();
 
