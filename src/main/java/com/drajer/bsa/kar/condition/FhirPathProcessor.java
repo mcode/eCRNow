@@ -36,7 +36,6 @@ import org.javatuples.Pair;
 import org.opencds.cqf.cql.evaluator.expression.ExpressionEvaluator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 public class FhirPathProcessor implements BsaConditionProcessor {
 
   private final Logger logger = LoggerFactory.getLogger(FhirPathProcessor.class);

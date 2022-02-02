@@ -98,7 +98,7 @@ public class KnowledgeArtifactStatus {
    * HealthcareSetting.
    */
   @Column(name = "subscriptions", columnDefinition = "TEXT")
-  @Type(type = "StringJsonObject")
+  d@Type(type = "StringJsonObject")
   Set<String> subscriptions;
 
   @Column(name = "is_only_covid", nullable = false)

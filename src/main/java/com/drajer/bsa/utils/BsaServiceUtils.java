@@ -1,6 +1,7 @@
 package com.drajer.bsa.utils;
 
 import ca.uhn.fhir.context.FhirContext;
+import ca.uhn.fhir.fhirpath.IFhirPath;
 import ca.uhn.fhir.parser.IParser;
 import com.drajer.bsa.model.KarProcessingData;
 import com.drajer.eca.model.MatchedTriggerCodes;
@@ -191,7 +192,8 @@ public class BsaServiceUtils {
     // vs or
     // any of the codes match its a match.
 
-    FhirPathR4 fpath = new FhirPathR4(FhirContext.forR4());
+    // dont r
+    IFhirPath fpath = new FhirPathR4(FhirContext.forR4());
     // dont know what this will return
     List<IBase> search = fpath.evaluate(resource, codeFilter.getPath(), IBase.class);
     if (search == null || search.size() == 0) {
