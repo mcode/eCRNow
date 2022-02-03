@@ -28,10 +28,6 @@ public interface FhirServerDetails {
 
   void setFhirServerBaseURL(String fhirServerBaseURL);
 
-  String getTokenURL();
-
-  void setTokenURL(String tokenURL);
-
   String getScopes();
 
   void setScopes(String scopes);
