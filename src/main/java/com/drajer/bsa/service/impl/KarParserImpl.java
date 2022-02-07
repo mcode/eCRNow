@@ -203,7 +203,7 @@ public class KarParserImpl implements KarParser {
   }
 
   public void loadKarsFromDirectory(String dirName) {
-
+    logger.info("Loading Kars from : {}", dirName);
     // Load each of the Knowledge Artifact Bundles.
     File folder = new File(dirName);
     List<File> kars = (List<File>) FileUtils.listFiles(folder, KAR_FILE_EXT, true);
@@ -229,7 +229,7 @@ public class KarParserImpl implements KarParser {
     logger.info(" Processing File : {}", kar);
 
     Bundle karBundle = utils.readKarFromFile(kar.getPath());
-
+     
     if (karBundle != null && (karBundle.getType() == Bundle.BundleType.COLLECTION)) {
 
       logger.info(" Successfully read the KAR from File ");
@@ -276,9 +276,12 @@ public class KarParserImpl implements KarParser {
       art.initializeRelatedActions();
 
       List<HealthcareSetting> allHealthcareSettings = hsDao.getAllHealthcareSettings();
-
+      logger.info("Processing allHealthcareSettings for Subscription");
       for (HealthcareSetting healthcareSetting : allHealthcareSettings) {
+        logger.info("Processing for Subscription: {}", healthcareSetting.getId());
+        healthcareSetting.log();
         if (healthcareSetting.getSubscriptionsEnabled()) {
+          logger.info("Processing KAR for Subscription");
           KarProcessingData kd = makeData(healthcareSetting, art);
           subscriptionGeneratorService.createSubscriptions(kd);
         }
