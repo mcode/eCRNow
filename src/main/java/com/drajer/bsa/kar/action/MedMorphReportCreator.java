@@ -50,7 +50,7 @@ public class MedMorphReportCreator extends ReportCreator {
       KarProcessingData kd, EhrQueryService ehrService, String id, String profile) {
     // Create the report as needed by the Ecr FHIR IG
     Bundle returnBundle = new Bundle();
-
+    logger.info("Creating report for {}", kd.getKar().getKarId());
     returnBundle.setId(id);
     returnBundle.setType(BundleType.MESSAGE);
     returnBundle.setMeta(ActionUtils.getMeta(DEFAULT_VERSION, profile));

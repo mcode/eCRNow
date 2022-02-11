@@ -53,6 +53,7 @@ public class BsaServiceUtils {
   String debugDirectory;
 
   private static final String FHIR_PATH_VARIABLE_PREFIX = "%";
+  private static IFhirPath FHIR_PATH = new FhirPathR4(FhirContext.forR4());
 
   public static String getFhirPathVariableString(String id) {
 
@@ -155,6 +156,7 @@ public class BsaServiceUtils {
         }
       }
       if (matches) {
+        logger.info("Resource matches filter {}", res.getId());
         filtered.add(res);
       }
     }
@@ -191,11 +193,8 @@ public class BsaServiceUtils {
     // if the filter containts codes match against them -- at this sage the matches are ORs.  If the
     // vs or
     // any of the codes match its a match.
-
-    // dont r
-    IFhirPath fpath = new FhirPathR4(FhirContext.forR4());
     // dont know what this will return
-    List<IBase> search = fpath.evaluate(resource, codeFilter.getPath(), IBase.class);
+    List<IBase> search = FHIR_PATH.evaluate(resource, codeFilter.getPath(), IBase.class);
     if (search == null || search.size() == 0) {
       return false;
     }

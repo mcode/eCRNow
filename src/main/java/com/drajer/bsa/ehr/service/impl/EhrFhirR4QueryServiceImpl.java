@@ -200,8 +200,8 @@ public class EhrFhirR4QueryServiceImpl implements EhrQueryService {
         HashMap<ResourceType, Set<Resource>> resMap = new HashMap<ResourceType, Set<Resource>>();
         HashMap<String, Set<Resource>> resMapById = new HashMap<String, Set<Resource>>();
 
-        resMap.put(type, resources);
-        resMapById.put(id, resources);
+        resMap.put(type, filtered);
+        resMapById.put(id, filtered);
         kd.addResourcesByType(resMap);
         kd.addResourcesById(resMapById);
       }

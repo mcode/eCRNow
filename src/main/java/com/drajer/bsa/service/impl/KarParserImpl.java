@@ -229,7 +229,7 @@ public class KarParserImpl implements KarParser {
     logger.info(" Processing File : {}", kar);
 
     Bundle karBundle = utils.readKarFromFile(kar.getPath());
-     
+
     if (karBundle != null && (karBundle.getType() == Bundle.BundleType.COLLECTION)) {
 
       logger.info(" Successfully read the KAR from File ");

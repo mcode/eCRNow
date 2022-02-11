@@ -18,9 +18,11 @@ import com.drajer.bsa.service.KarProcessor;
 import com.drajer.bsa.service.NotificationContextService;
 import com.drajer.bsa.utils.BsaServiceUtils;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.DataRequirement;
 import org.hl7.fhir.r4.model.Resource;
 import org.hl7.fhir.r4.model.ResourceType;
 import org.slf4j.Logger;
@@ -83,8 +85,10 @@ public class KarProcessorImpl implements KarProcessor {
       // Get the Resources that need to be retrieved.
       HashMap<String, ResourceType> resourceTypes = action.getInputResourceTypes();
 
+      List<DataRequirement> inputRequirements = action.getInputData();
       // Get necessary data to process.
-      HashMap<ResourceType, Set<Resource>> res = ehrInterface.getFilteredData(data, resourceTypes);
+      HashMap<ResourceType, Set<Resource>> res =
+          ehrInterface.getFilteredData(data, inputRequirements);
 
       BsaActionStatus status = action.process(data, ehrInterface);
 
