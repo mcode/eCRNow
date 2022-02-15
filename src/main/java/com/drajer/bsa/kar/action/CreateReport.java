@@ -4,13 +4,10 @@ import com.drajer.bsa.ehr.service.EhrQueryService;
 import com.drajer.bsa.kar.model.BsaAction;
 import com.drajer.bsa.model.BsaTypes.BsaActionStatusType;
 import com.drajer.bsa.model.KarProcessingData;
-
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.hl7.fhir.r4.model.CanonicalType;
 import org.hl7.fhir.r4.model.DataRequirement;
 import org.hl7.fhir.r4.model.Resource;
@@ -40,11 +37,10 @@ public class CreateReport extends BsaAction {
       // Get the Resources that need to be retrieved.
       List<DataRequirement> inputRequirements = getInputData();
       // Get necessary data to process.
-           Map<ResourceType, Set<Resource>> res =
-               ehrService.getFilteredData(data, inputRequirements);
-      Set<Resource> resource = new HashSet<>();
+      Map<ResourceType, Set<Resource>> res = ehrService.getFilteredData(data, inputRequirements);
+      Set<Resource> resources = new HashSet<>();
       inputRequirements.forEach(ir -> resources.addAll(data.getResourcesById(ir.getId())));
-      //Get the Output Data Requirement to determine the type of bundle to create.
+      // Get the Output Data Requirement to determine the type of bundle to create.
       for (DataRequirement dr : outputData) {
 
         if (dr.hasProfile()) {
@@ -59,7 +55,8 @@ public class CreateReport extends BsaAction {
             if (rc != null) {
 
               logger.info("Start creating report");
-              Resource output = rc.createReport(data, ehrService, dr.getId(), ct.asStringValue());
+              Resource output =
+                  rc.createReport(data, ehrService, resources, dr.getId(), ct.asStringValue());
               logger.info("Finished creating report");
 
               if (output != null) {

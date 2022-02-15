@@ -135,9 +135,10 @@ public class KarProcessingData {
 
   public void addNotifiedResource(String resId, Resource res) {}
 
-  public Set<Resource> getResourcesById(String id){
+  public Set<Resource> getResourcesById(String id) {
     return getFhirInputDataById().get(id);
   }
+
   public Set<Resource> getResourcesByType(String type) {
 
     for (Map.Entry<ResourceType, Set<Resource>> entry : fhirInputDataByType.entrySet()) {
@@ -199,6 +200,24 @@ public class KarProcessingData {
     }
   }
 
+  public void addResourcesByType(ResourceType type, Set<Resource> res) {
+
+    if (res != null && res.size() > 0) {
+
+      logger.info(" Resource Sizes : {}", res.size());
+      for (Resource resource : res) {
+
+        if (fhirInputDataByType.containsKey(type)) {
+          Set<Resource> resources = fhirInputDataByType.get(type);
+          resources.addAll(res);
+          Set<Resource> uniqueResources =
+              ResourceUtils.deduplicate(resources).stream().collect(Collectors.toSet());
+          fhirInputDataByType.put(type, uniqueResources);
+        } else fhirInputDataByType.put(type, res);
+      }
+    }
+  }
+
   public void addResourcesById(HashMap<String, Set<Resource>> res) {
 
     if (res != null && res.size() > 0) {
@@ -214,6 +233,12 @@ public class KarProcessingData {
           fhirInputDataById.put(entry.getKey(), uniqueResources);
         } else fhirInputDataById.put(entry.getKey(), entry.getValue());
       }
+    }
+  }
+
+  public void addResourcesById(String id, Set<Resource> res) {
+    if (res != null && res.size() > 0) {
+      fhirInputDataById.put(id, res);
     }
   }
 

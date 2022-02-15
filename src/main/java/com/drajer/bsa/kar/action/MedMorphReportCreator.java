@@ -82,7 +82,11 @@ public class MedMorphReportCreator extends ReportCreator {
 
   @Override
   public Resource createReport(
-      KarProcessingData kd, EhrQueryService ehrService, Set<Resource> inputData,  String id, String profile) {
+      KarProcessingData kd,
+      EhrQueryService ehrService,
+      Set<Resource> inputData,
+      String id,
+      String profile) {
     // Create the report as needed by the Ecr FHIR IG
     Bundle returnBundle = new Bundle();
     logger.info("Creating report for {}", kd.getKar().getKarId());
@@ -91,8 +95,10 @@ public class MedMorphReportCreator extends ReportCreator {
     returnBundle.setMeta(ActionUtils.getMeta(DEFAULT_VERSION, profile));
     returnBundle.setTimestamp(Date.from(Instant.now()));
 
+    logger.info("MEDMORPH REPORT Resource Count {}", inputData.size());
     // Create the Content Bundle.
-    Bundle contentBundle = createContentBundle(inputData,kd.getHealthcareSetting().getFhirServerBaseURL() );
+    Bundle contentBundle =
+        createContentBundle(inputData, kd.getHealthcareSetting().getFhirServerBaseURL());
 
     // Create the Message Header resource.
     MessageHeader header = createMessageHeader(kd);
@@ -170,7 +176,7 @@ public class MedMorphReportCreator extends ReportCreator {
     return header;
   }
 
-  public Bundle createContentBundle(Set<Resource> inputData, String fhirBase){
+  public Bundle createContentBundle(Set<Resource> inputData, String fhirBase) {
     Bundle returnBundle = new Bundle();
 
     returnBundle.setId(UUID.randomUUID().toString());
@@ -180,21 +186,21 @@ public class MedMorphReportCreator extends ReportCreator {
 
     List<BundleEntryComponent> becs = new ArrayList<BundleEntryComponent>();
     for (Resource resource : inputData) {
-        String id = resource.getId();
-        String resourceType = resource.getResourceType().toString();
-        String fullUrl;
-        if (id.startsWith("http")) {
-          // id is already the full URL
-          fullUrl = id;
-        } else if (id.startsWith(resourceType)) {
-          // id is something like "Observation/1235"
-          fullUrl = fhirBase + "/" + id;
-        } else {
-          fullUrl = fhirBase + "/" + resourceType + "/" + id;
-        }
-        logger.info(" Adding Resource Id : {} of Type {}", id, resourceType);
-        becs.add(new BundleEntryComponent().setResource(resource).setFullUrl(fullUrl));
+      String id = resource.getId();
+      String resourceType = resource.getResourceType().toString();
+      String fullUrl;
+      if (id.startsWith("http")) {
+        // id is already the full URL
+        fullUrl = id;
+      } else if (id.startsWith(resourceType)) {
+        // id is something like "Observation/1235"
+        fullUrl = fhirBase + "/" + id;
+      } else {
+        fullUrl = fhirBase + "/" + resourceType + "/" + id;
       }
+      logger.info(" Adding Resource Id : {} of Type {}", id, resourceType);
+      becs.add(new BundleEntryComponent().setResource(resource).setFullUrl(fullUrl));
+    }
 
     returnBundle.setEntry(becs);
 

@@ -181,7 +181,7 @@ public class EhrFhirR4QueryServiceImpl implements EhrQueryService {
       ResourceType type = ResourceType.valueOf(entry.getType());
       logger.info(" Fetching Resource of type {}", type);
 
-      if (type != ResourceType.Patient || type != ResourceType.Encounter) {
+      if (type != ResourceType.Patient && type != ResourceType.Encounter) {
         String url =
             kd.getNotificationContext().getFhirServerBaseUrl()
                 + "/"
@@ -192,18 +192,18 @@ public class EhrFhirR4QueryServiceImpl implements EhrQueryService {
         logger.info(" Resource Query Url : {}", url);
 
         // get the resources
-        Set<Resource> resources = fetchResources(client, context, url);
+        Set<Resource> resources = kd.getResourcesByType(type.toString());
+        if (resources == null || resources.size() == 0) {
+          resources = fetchResources(client, context, url);
+          kd.addResourcesByType(type, resources);
+        }
         // filter resources by any filters in the drRequirements
         Set<Resource> filtered = BsaServiceUtils.filterResources(resources, entry, kd);
         // add filtered resources to kd by type and id
-
-        HashMap<ResourceType, Set<Resource>> resMap = new HashMap<ResourceType, Set<Resource>>();
-        HashMap<String, Set<Resource>> resMapById = new HashMap<String, Set<Resource>>();
-
-        resMap.put(type, filtered);
-        resMapById.put(id, filtered);
-        kd.addResourcesByType(resMap);
-        kd.addResourcesById(resMapById);
+        logger.info("Filtered resource count of type {} dr_id {} is {}", type, id, filtered.size());
+        kd.addResourcesById(id, filtered);
+      } else {
+        kd.addResourcesById(id, kd.getResourcesByType(type.toString()));
       }
     }
 

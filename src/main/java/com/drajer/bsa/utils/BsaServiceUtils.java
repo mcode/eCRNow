@@ -146,7 +146,7 @@ public class BsaServiceUtils {
       Set<Resource> resources,
       List<DataRequirement.DataRequirementCodeFilterComponent> codeFilters,
       KarProcessingData kd) {
-    Set<Resource> filtered = resources;
+    Set<Resource> filtered = new HashSet<Resource>();
     for (Resource res : resources) {
       boolean matches = true;
       for (DataRequirement.DataRequirementCodeFilterComponent drcfc : codeFilters) {
