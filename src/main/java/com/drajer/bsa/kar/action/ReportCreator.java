@@ -63,4 +63,7 @@ public abstract class ReportCreator {
 
   public abstract Resource createReport(
       KarProcessingData kd, EhrQueryService ehrService, String id, String profile);
+
+  public abstract Resource createReport(
+    KarProcessingData kd, EhrQueryService ehrService, Set<Resource> inputData, String id, String profile);
 }

@@ -80,6 +80,41 @@ public class MedMorphReportCreator extends ReportCreator {
     return returnBundle;
   }
 
+  @Override
+  public Resource createReport(
+      KarProcessingData kd, EhrQueryService ehrService, Set<Resource> inputData,  String id, String profile) {
+    // Create the report as needed by the Ecr FHIR IG
+    Bundle returnBundle = new Bundle();
+    logger.info("Creating report for {}", kd.getKar().getKarId());
+    returnBundle.setId(id);
+    returnBundle.setType(BundleType.MESSAGE);
+    returnBundle.setMeta(ActionUtils.getMeta(DEFAULT_VERSION, profile));
+    returnBundle.setTimestamp(Date.from(Instant.now()));
+
+    // Create the Content Bundle.
+    Bundle contentBundle = createContentBundle(inputData,kd.getHealthcareSetting().getFhirServerBaseURL() );
+
+    // Create the Message Header resource.
+    MessageHeader header = createMessageHeader(kd);
+
+    Organization sender = createSender(kd);
+
+    // Setup Message Header to Content Bundle Linkage.
+    header.setFocus(Arrays.asList(referenceTo(contentBundle)));
+
+    header.setSender(referenceTo(sender));
+
+    // Add the Message Header Resource
+    returnBundle.addEntry(new BundleEntryComponent().setResource(header));
+
+    // Add the Content Bundle.
+    returnBundle.addEntry(new BundleEntryComponent().setResource(contentBundle));
+
+    returnBundle.addEntry(new BundleEntryComponent().setResource(sender));
+
+    return returnBundle;
+  }
+
   public Reference referenceTo(Resource dest) {
     Reference ref = new Reference();
     ref.setReference(dest.fhirType() + "/" + dest.getId());
@@ -133,6 +168,37 @@ public class MedMorphReportCreator extends ReportCreator {
     header.setReason(cd);
 
     return header;
+  }
+
+  public Bundle createContentBundle(Set<Resource> inputData, String fhirBase){
+    Bundle returnBundle = new Bundle();
+
+    returnBundle.setId(UUID.randomUUID().toString());
+    returnBundle.setType(BundleType.COLLECTION);
+    returnBundle.setMeta(ActionUtils.getMeta(DEFAULT_VERSION, CONTENT_BUNDLE_PROFILE));
+    returnBundle.setTimestamp(Date.from(Instant.now()));
+
+    List<BundleEntryComponent> becs = new ArrayList<BundleEntryComponent>();
+    for (Resource resource : inputData) {
+        String id = resource.getId();
+        String resourceType = resource.getResourceType().toString();
+        String fullUrl;
+        if (id.startsWith("http")) {
+          // id is already the full URL
+          fullUrl = id;
+        } else if (id.startsWith(resourceType)) {
+          // id is something like "Observation/1235"
+          fullUrl = fhirBase + "/" + id;
+        } else {
+          fullUrl = fhirBase + "/" + resourceType + "/" + id;
+        }
+        logger.info(" Adding Resource Id : {} of Type {}", id, resourceType);
+        becs.add(new BundleEntryComponent().setResource(resource).setFullUrl(fullUrl));
+      }
+
+    returnBundle.setEntry(becs);
+
+    return returnBundle;
   }
 
   public Bundle createContentBundle(KarProcessingData kd) {

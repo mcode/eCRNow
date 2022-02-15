@@ -135,6 +135,9 @@ public class KarProcessingData {
 
   public void addNotifiedResource(String resId, Resource res) {}
 
+  public Set<Resource> getResourcesById(String id){
+    return getFhirInputDataById().get(id);
+  }
   public Set<Resource> getResourcesByType(String type) {
 
     for (Map.Entry<ResourceType, Set<Resource>> entry : fhirInputDataByType.entrySet()) {

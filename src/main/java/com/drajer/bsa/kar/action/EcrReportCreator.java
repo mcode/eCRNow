@@ -73,6 +73,11 @@ public class EcrReportCreator extends ReportCreator {
     EMERGENCY_OUTBREAK_SECTION
   }
 
+  public Resource createReport(
+      KarProcessingData kd, EhrQueryService ehrService, Set<Resource> inputData, String id, String profile) {
+        return createReport(kd,ehrService,id,profile);
+  }
+
   @Override
   public Resource createReport(
       KarProcessingData kd, EhrQueryService ehrService, String id, String profile) {
