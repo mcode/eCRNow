@@ -270,7 +270,13 @@ public class EhrFhirR4QueryServiceImpl implements EhrQueryService {
   public JSONObject getToken(FhirServerDetails fsd) {
     String password = fsd.getPassword();
     String secret = fsd.getClientSecret();
-    if (password != null && !password.isEmpty()) {
+    String client_id = fsd.getClientId();
+    if (client_id != null && client_id.equalsIgnoreCase("NO_AUTH_REQUIRED")) {
+      Map<String, Object> tokenParams = new HashMap<>();
+      tokenParams.put("access_token", "admin");
+      tokenParams.put("expires_in", 60 * 60 * 24);
+      return new JSONObject(tokenParams);
+    } else if (password != null && !password.isEmpty()) {
       return passwordAuthorizationService.getAuthorizationToken(fsd);
     } else if (secret == null || secret.isEmpty()) {
       return backendAuthorizationService.getAuthorizationToken(fsd);
