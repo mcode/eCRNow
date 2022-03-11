@@ -74,8 +74,10 @@ public class SubmitReport extends BsaAction {
         submitResources(resourcesToSubmit, data, ehrService, actStatus, submissionEndpoint);
       } else {
         Set<UriType> endpoints = data.getKar().getReceiverAddresses();
+        logger.info("Sending data to endpoints {} ", endpoints);
         if (endpoints.size() > 0) {
           for (UriType uri : endpoints) {
+            logger.info("Submitting resources to {}", uri);
             submitResources(resourcesToSubmit, data, ehrService, actStatus, uri.getValueAsString());
           }
         }
