@@ -51,19 +51,25 @@ public class SubmitReport extends BsaAction {
     BsaActionStatusType status = processTimingData(data);
 
     if (status != BsaActionStatusType.Scheduled || getIgnoreTimers()) {
-
+      logger.info("Action is not timed going throug hto submission");
       List<DataRequirement> input = getInputData();
 
       Set<Resource> resourcesToSubmit = new HashSet<>();
 
       if (input != null) {
+        logger.info("Input is not null");
         for (DataRequirement dr : input) {
           Set<Resource> resources = data.getOutputDataById(dr.getId());
           resourcesToSubmit.addAll(resources);
         }
+      } else {
+        logger.info("Input is null");
       }
 
       if (!data.getHealthcareSetting().getTrustedThirdParty().isEmpty()) {
+        logger.info(
+            "Sending to trusted thrid party {}",
+            data.getHealthcareSetting().getTrustedThirdParty());
         submitResources(
             resourcesToSubmit,
             data,
@@ -71,6 +77,7 @@ public class SubmitReport extends BsaAction {
             actStatus,
             data.getHealthcareSetting().getTrustedThirdParty());
       } else if (!submissionEndpoint.isEmpty()) {
+        logger.info("Sending to submissionEndpoint {}", submissionEndpoint);
         submitResources(resourcesToSubmit, data, ehrService, actStatus, submissionEndpoint);
       } else {
         Set<UriType> endpoints = data.getKar().getReceiverAddresses();
