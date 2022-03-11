@@ -137,6 +137,7 @@ public class SubmitReport extends BsaAction {
         SubmitReport.class.getClassLoader().getResourceAsStream("report-headers.properties")) {
       Properties headers = new Properties();
       headers.load(inputStream);
+
       for (Resource r : resourcesToSubmit) {
 
         IGenericClient client =

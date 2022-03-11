@@ -271,18 +271,25 @@ public class EhrFhirR4QueryServiceImpl implements EhrQueryService {
     String password = fsd.getPassword();
     String secret = fsd.getClientSecret();
     String client_id = fsd.getClientId();
+    JSONObject token;
     if (client_id != null && client_id.equalsIgnoreCase("NO_AUTH_REQUIRED")) {
       Map<String, Object> tokenParams = new HashMap<>();
       tokenParams.put("access_token", "admin");
       tokenParams.put("expires_in", 60 * 60 * 24);
-      return new JSONObject(tokenParams);
+      token = new JSONObject(tokenParams);
+      logger.info("Hacked no auth token");
     } else if (password != null && !password.isEmpty()) {
-      return passwordAuthorizationService.getAuthorizationToken(fsd);
+      logger.info("Getting passsword auth token");
+      token = passwordAuthorizationService.getAuthorizationToken(fsd);
     } else if (secret == null || secret.isEmpty()) {
-      return backendAuthorizationService.getAuthorizationToken(fsd);
+      logger.info("Getting backend auth token");
+      token = backendAuthorizationService.getAuthorizationToken(fsd);
     } else {
-      return ehrAuthorizationService.getAuthorizationToken(fsd);
+      logger.info("Getting EHR auth token");
+      token = ehrAuthorizationService.getAuthorizationToken(fsd);
     }
+    logger.info("Returning token {}", token);
+    return token;
   }
 
   public Resource getResourceById(
