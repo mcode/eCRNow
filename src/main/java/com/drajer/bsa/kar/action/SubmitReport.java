@@ -66,7 +66,8 @@ public class SubmitReport extends BsaAction {
         logger.info("Input is null");
       }
 
-      if (!data.getHealthcareSetting().getTrustedThirdParty().isEmpty()) {
+      if (data.getHealthcareSetting().getTrustedThirdParty() != null
+          && !data.getHealthcareSetting().getTrustedThirdParty().isEmpty()) {
         logger.info(
             "Sending to trusted thrid party {}",
             data.getHealthcareSetting().getTrustedThirdParty());
@@ -76,7 +77,7 @@ public class SubmitReport extends BsaAction {
             ehrService,
             actStatus,
             data.getHealthcareSetting().getTrustedThirdParty());
-      } else if (!submissionEndpoint.isEmpty()) {
+      } else if (submissionEndpoint != null && !submissionEndpoint.isEmpty()) {
         logger.info("Sending to submissionEndpoint {}", submissionEndpoint);
         submitResources(resourcesToSubmit, data, ehrService, actStatus, submissionEndpoint);
       } else {
