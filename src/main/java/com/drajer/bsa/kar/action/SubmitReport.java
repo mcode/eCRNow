@@ -137,7 +137,7 @@ public class SubmitReport extends BsaAction {
         SubmitReport.class.getClassLoader().getResourceAsStream("report-headers.properties")) {
       Properties headers = new Properties();
       headers.load(inputStream);
-
+      logger.info("{} Resources to submit ", resourcesToSubmit.size());
       for (Resource r : resourcesToSubmit) {
 
         IGenericClient client =
@@ -152,8 +152,9 @@ public class SubmitReport extends BsaAction {
             client.operation().processMessage().setMessageBundle(bundleToSubmit);
         headers.forEach(
             (key, value) -> operation.withAdditionalHeader((String) key, (String) value));
+        logger.info("Calling $processMessage operation");
         Bundle responseBundle = (Bundle) operation.encodedJson().execute();
-
+        logger.info("Response is {}", responseBundle);
         if (responseBundle != null) {
           //          logger.info(
           //              "Response Bundle:::::{}",
