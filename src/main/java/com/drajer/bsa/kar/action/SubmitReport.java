@@ -116,7 +116,8 @@ public class SubmitReport extends BsaAction {
 
     String token = "";
     if (pha != null) {
-      logger.info("Attempting to retrieve TOKEN from PHA {} or {}", pha.getTokenUrl(), pha.getTokenURL());
+      logger.info(
+          "Attempting to retrieve TOKEN from PHA {} or {}", pha.getTokenUrl(), pha.getTokenURL());
       token = ehrService.getToken(pha).getString("access_token");
     } else {
       logger.warn("No PHA was found with submission endpoint {}", submissionEndpoint);
@@ -152,7 +153,7 @@ public class SubmitReport extends BsaAction {
           logger.info(" Adding Response Bundle to output using id {}", responseBundle.getId());
 
           data.addActionOutputById(responseBundle.getId(), responseBundle);
-        }else{
+        } else {
           logger.info("Response BUNDLE IS NULL");
         }
 
