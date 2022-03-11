@@ -98,6 +98,7 @@ public class SubmitReport extends BsaAction {
       EhrQueryService ehrService,
       BsaActionStatus actStatus,
       String submissionEndpoint) {
+    logger.info("SubmitResources called: sending data to {}", submissionEndpoint);
     FhirContext context = fhirContextInitializer.getFhirContext(R4);
     PublicHealthAuthority pha;
     if (submissionEndpoint.endsWith("/")) {
@@ -105,14 +106,17 @@ public class SubmitReport extends BsaAction {
     }
     pha = publicHealthAuthorityService.getPublicHealthAuthorityByUrl(submissionEndpoint);
     if (pha == null) {
+      logger.info("PHA is NULL");
       if (!submissionEndpoint.endsWith("$process-message")) {
         pha =
             publicHealthAuthorityService.getPublicHealthAuthorityByUrl(
                 String.format("%s/$process-message", submissionEndpoint));
       }
     }
+
     String token = "";
     if (pha != null) {
+      logger.info("Attempting to retrieve TOKEN from PHA {} or {}", pha.getTokenUrl(), pha.getTokenURL());
       token = ehrService.getToken(pha).getString("access_token");
     } else {
       logger.warn("No PHA was found with submission endpoint {}", submissionEndpoint);
@@ -148,6 +152,8 @@ public class SubmitReport extends BsaAction {
           logger.info(" Adding Response Bundle to output using id {}", responseBundle.getId());
 
           data.addActionOutputById(responseBundle.getId(), responseBundle);
+        }else{
+          logger.info("Response BUNDLE IS NULL");
         }
 
         if (conditionsMet(data)) {
