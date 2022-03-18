@@ -2,6 +2,7 @@ package com.drajer.bsa.kar.action;
 
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
+import ca.uhn.fhir.rest.client.impl.GenericClient;
 import ca.uhn.fhir.rest.gclient.IOperationProcessMsgMode;
 import com.drajer.bsa.ehr.service.EhrQueryService;
 import com.drajer.bsa.kar.model.BsaAction;
@@ -143,6 +144,7 @@ public class SubmitReport extends BsaAction {
         IGenericClient client =
             fhirContextInitializer.createClient(context, submissionEndpoint, token);
 
+        ((GenericClient) client).setDontValidateConformance(true);
         context.getRestfulClientFactory().setSocketTimeout(30 * 1000);
 
         // All submissions are expected to be bundles
