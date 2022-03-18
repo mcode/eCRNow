@@ -154,10 +154,14 @@ public class SubmitReport extends BsaAction {
             (key, value) -> operation.withAdditionalHeader((String) key, (String) value));
         logger.info("Calling $processMessage operation");
         Bundle responseBundle;
+        Object response = null;
         try {
-          responseBundle = (Bundle) operation.encodedJson().execute();
+          response = operation.encodedJson().execute();
+          responseBundle = (Bundle) response;
         } catch (RuntimeException re) {
+
           logger.error("Error calling $process-message endpoint", re);
+          logger.info("Response Object was {}", response);
           return;
         }
         logger.info("Response is {}", responseBundle);
