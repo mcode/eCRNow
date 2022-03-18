@@ -51,7 +51,7 @@ public class SubmitReport extends BsaAction {
     BsaActionStatusType status = processTimingData(data);
 
     if (status != BsaActionStatusType.Scheduled || getIgnoreTimers()) {
-      logger.info("Action is not timed going throug hto submission");
+      logger.info("Action is not timed going through to submission");
       List<DataRequirement> input = getInputData();
 
       Set<Resource> resourcesToSubmit = new HashSet<>();
@@ -153,7 +153,13 @@ public class SubmitReport extends BsaAction {
         headers.forEach(
             (key, value) -> operation.withAdditionalHeader((String) key, (String) value));
         logger.info("Calling $processMessage operation");
-        Bundle responseBundle = (Bundle) operation.encodedJson().execute();
+        Bundle responseBundle;
+        try {
+          responseBundle = (Bundle) operation.encodedJson().execute();
+        } catch (RuntimeException re) {
+          logger.error("Error calling $process-message endpoint", re);
+          return;
+        }
         logger.info("Response is {}", responseBundle);
         if (responseBundle != null) {
           //          logger.info(
