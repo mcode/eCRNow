@@ -6,29 +6,20 @@ import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 import com.drajer.bsa.ehr.service.EhrAuthorizationService;
 import com.drajer.bsa.ehr.service.EhrQueryService;
 import com.drajer.bsa.model.KarProcessingData;
+import com.drajer.bsa.utils.BsaServiceUtils;
 import com.drajer.sof.utils.FhirContextInitializer;
 import com.drajer.sof.utils.ResourceUtils;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+
+import java.time.Instant;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.hl7.fhir.instance.model.api.IBaseBundle;
-import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.*;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
-import org.hl7.fhir.r4.model.Encounter;
 import org.hl7.fhir.r4.model.Encounter.EncounterLocationComponent;
 import org.hl7.fhir.r4.model.Encounter.EncounterParticipantComponent;
-import org.hl7.fhir.r4.model.Location;
-import org.hl7.fhir.r4.model.Organization;
-import org.hl7.fhir.r4.model.Practitioner;
-import org.hl7.fhir.r4.model.Reference;
-import org.hl7.fhir.r4.model.Resource;
-import org.hl7.fhir.r4.model.ResourceType;
-import org.hl7.fhir.r4.model.IdType;
 import org.hl7.fhir.instance.model.api.IIdType;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -79,12 +70,6 @@ public class EhrFhirR4QueryServiceImpl implements EhrQueryService {
   public HashMap<ResourceType, Set<Resource>> getFilteredData(
       KarProcessingData kd, HashMap<String, ResourceType> resTypes) {
 
-    String secret = kd.getHealthcareSetting().getClientSecret();
-    if (secret == null || secret.isEmpty()) {
-      backendAuthorizationService.getAuthorizationToken(kd);
-    } else {
-      ehrAuthorizationService.getAuthorizationToken(kd);
-    }
 
     logger.info(" Getting FHIR Context for R4");
     FhirContext context = fhirContextInitializer.getFhirContext(R4);
@@ -167,20 +152,83 @@ public class EhrFhirR4QueryServiceImpl implements EhrQueryService {
     // Get other resources for Patient
     return kd.getFhirInputData();
   }
-  
+
+  /**
+   * The method is used to retrieve data from the Ehr.
+   *
+   * @param kd The processing context which contains information such as patient, encounter,
+   *     previous data etc.
+   * @return The Map of Resources to its type.
+   */
+  @Override
+  public HashMap<ResourceType, Set<Resource>> getFilteredData(
+          KarProcessingData kd, List<DataRequirement> dRequirements) {
+    logger.info(" Getting FHIR Context for R4");
+    FhirContext context = fhirContextInitializer.getFhirContext(R4);
+
+    logger.info("Initializing FHIR Client");
+    IGenericClient client = getClient(kd, context);
+
+    // Get Patient by Id always
+    Resource res =
+            getResourceById(
+                    client, context, PATIENT_RESOURCE, kd.getNotificationContext().getPatientId());
+    if (res != null) {
+
+      logger.info(
+              " Found Patient resource for Id : {}", kd.getNotificationContext().getPatientId());
+
+      Set<Resource> resources = new HashSet<>();
+      resources.add(res);
+      HashMap<ResourceType, Set<Resource>> resMap = new HashMap<>();
+      resMap.put(res.getResourceType(), resources);
+      kd.addResourcesByType(resMap);
+    }
+
+    // Fetch Resources by Patient Id.
+    for (DataRequirement entry : dRequirements) {
+      String id = entry.getId();
+      ResourceType type = ResourceType.valueOf(entry.getType());
+      logger.info(" Fetching Resource of type {}", type);
+
+      if (type != ResourceType.Patient && type != ResourceType.Encounter) {
+        String url =
+                kd.getNotificationContext().getFhirServerBaseUrl()
+                        + "/"
+                        + type
+                        + PATIENT_ID_SEARCH_PARAM
+                        + kd.getNotificationContext().getPatientId();
+
+        logger.info(" Resource Query Url : {}", url);
+
+        // get the resources
+        Set<Resource> resources = kd.getResourcesByType(type.toString());
+        if (resources == null || resources.size() == 0) {
+          resources = fetchResources(client, context, url);
+          kd.addResourcesByType(type, resources);
+        }
+        // filter resources by any filters in the drRequirements
+        Set<Resource> filtered = BsaServiceUtils.filterResources(resources, entry, kd);
+        // add filtered resources to kd by type and id
+        logger.info("Filtered resource count of type {} dr_id {} is {}", type, id, filtered.size());
+        kd.addResourcesById(id, filtered);
+      } else {
+        kd.addResourcesById(id, kd.getResourcesByType(type.toString()));
+      }
+    }
+
+    // Get other resources for Patient
+    return kd.getFhirInputData();
+  }
+
+
   /**
    * @param kd The data object for getting the healthcareSetting and notification context from
    * @param context The HAPI FHIR context for making a FHIR client with
    * @return
    */
   public IGenericClient getClient(KarProcessingData kd, FhirContext context) {
-    String secret = kd.getHealthcareSetting().getClientSecret();
-    if (secret == null || secret.isEmpty()) {
-      backendAuthorizationService.getAuthorizationToken(kd);
-    } else {
-      ehrAuthorizationService.getAuthorizationToken(kd);
-    }
-
+    getToken(kd,context);
     return fhirContextInitializer.createClient(
         context,
         kd.getHealthcareSetting().getFhirServerBaseURL(),
@@ -188,6 +236,15 @@ public class EhrFhirR4QueryServiceImpl implements EhrQueryService {
         kd.getNotificationContext().getxRequestId());
   }
 
+  public void getToken(KarProcessingData kd, FhirContext context){
+    String secret = kd.getHealthcareSetting().getClientSecret();
+    if (secret == null || secret.isEmpty()) {
+      backendAuthorizationService.getAuthorizationToken(kd);
+    } else {
+      ehrAuthorizationService.getAuthorizationToken(kd);
+    }
+
+  }
   /**
    * @param kd The KarProcessingData includes data about the fhir server to create a resource on
    * @param resource the resource to create on the fhir server
@@ -218,25 +275,29 @@ public class EhrFhirR4QueryServiceImpl implements EhrQueryService {
     client.delete().resourceById(resourceType.toString(), id).execute();
   }
 
-  public HashMap<ResourceType, Set<Resource>> loadJurisdicationData(KarProcessingData kd) {
-
-    String secret = kd.getHealthcareSetting().getClientSecret();
-    if (secret == null || secret.isEmpty()) {
-      backendAuthorizationService.getAuthorizationToken(kd);
-    } else {
-      ehrAuthorizationService.getAuthorizationToken(kd);
-    }
+  /**
+   * @param kd The KarProcessingData includes data about the fhir server to update a resource on
+   * @param resource the resource (with ID) to update on the fhir server
+   */
+  public void updateResource(KarProcessingData kd, Resource resource) {
 
     logger.info(" Getting FHIR Context for R4");
     FhirContext context = fhirContextInitializer.getFhirContext(R4);
 
     logger.info("Initializing FHIR Client");
-    IGenericClient client =
-        fhirContextInitializer.createClient(
-            context,
-            kd.getHealthcareSetting().getFhirServerBaseURL(),
-            kd.getNotificationContext().getEhrAccessToken(),
-            kd.getxRequestId());
+    IGenericClient client = getClient(kd, context);
+    client.update().resource(resource).execute();
+  }
+
+  public HashMap<ResourceType, Set<Resource>> loadJurisdicationData(KarProcessingData kd) {
+
+
+
+    logger.info(" Getting FHIR Context for R4");
+    FhirContext context = fhirContextInitializer.getFhirContext(R4);
+
+    logger.info("Initializing FHIR Client");
+    IGenericClient client =getClient(kd,context);
 
     // Retrieve the encounter
     Set<Resource> res = kd.getResourcesByType(ResourceType.Encounter.toString());
@@ -339,23 +400,12 @@ public class EhrFhirR4QueryServiceImpl implements EhrQueryService {
   @Override
   public Resource getResourceById(KarProcessingData kd, String resourceName, String resourceId) {
 
-    String secret = kd.getHealthcareSetting().getClientSecret();
-    if (secret == null || secret.isEmpty()) {
-      backendAuthorizationService.getAuthorizationToken(kd);
-    } else {
-      ehrAuthorizationService.getAuthorizationToken(kd);
-    }
 
     logger.info(" Getting FHIR Context for R4");
     FhirContext context = fhirContextInitializer.getFhirContext(R4);
 
     logger.info("Initializing FHIR Client");
-    IGenericClient client =
-        fhirContextInitializer.createClient(
-            context,
-            kd.getHealthcareSetting().getFhirServerBaseURL(),
-            kd.getNotificationContext().getEhrAccessToken(),
-            kd.getxRequestId());
+    IGenericClient client = getClient(kd, context);
 
     return getResourceById(client, context, resourceName, resourceId);
   }
@@ -385,6 +435,18 @@ public class EhrFhirR4QueryServiceImpl implements EhrQueryService {
       logger.error("Error in getting {} resource by Id: {}", resourceName, resourceId, e);
     }
     return resource;
+  }
+
+  public Set<Resource> fetchResources(
+          IGenericClient genericClient, FhirContext context, String searchUrl) {
+    Set<Resource> resources = new HashSet<Resource>();
+    Bundle bundle = genericClient.search().byUrl(searchUrl).returnBundle(Bundle.class).execute();
+    getAllR4RecordsUsingPagination(genericClient, bundle);
+    List<BundleEntryComponent> bc = bundle.getEntry();
+    for (BundleEntryComponent comp : bc) {
+      resources.add(comp.getResource());
+    }
+    return resources;
   }
 
   public void getResourcesByPatientId(
