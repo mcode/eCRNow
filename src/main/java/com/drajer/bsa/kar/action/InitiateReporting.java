@@ -33,7 +33,7 @@ public class InitiateReporting extends BsaAction {
     HashMap<String, ResourceType> resourceTypes = getInputResourceTypes();
 
     // Get necessary data to process.
-    HashMap<ResourceType, Set<Resource>> res = ehrService.getFilteredData(data, resourceTypes);
+    HashMap<ResourceType, Set<Resource>> res = ehrService.getFilteredData(data, getInputData());
 
     // Ensure the activity is In-Progress and the Conditions are met.
     if (status != BsaActionStatusType.Scheduled && conditionsMet(data)) {

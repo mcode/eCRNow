@@ -84,11 +84,8 @@ public class EvaluateMeasure extends BsaAction {
       logger.info(
           " Action {} can proceed as it does not have timing information ", this.getActionId());
 
-      // Get the Resources that need to be retrieved.
-      HashMap<String, ResourceType> resourceTypes = getInputResourceTypes();
-
       // Get necessary data to process.
-      HashMap<ResourceType, Set<Resource>> res = ehrService.getFilteredData(data, resourceTypes);
+      HashMap<ResourceType, Set<Resource>> res = ehrService.getFilteredData(data, getInputData());
 
       Endpoint endpoint =
           new Endpoint()
