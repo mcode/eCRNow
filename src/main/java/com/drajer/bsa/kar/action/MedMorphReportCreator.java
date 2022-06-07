@@ -198,6 +198,7 @@ public class MedMorphReportCreator extends ReportCreator {
       } else {
         fullUrl = fhirBase + "/" + resourceType + "/" + id;
       }
+      fullUrl = fullUrl.replaceAll("/_history/.*", "");
       logger.info(" Adding Resource Id : {} of Type {}", id, resourceType);
       becs.add(new BundleEntryComponent().setResource(resource).setFullUrl(fullUrl));
     }
@@ -247,7 +248,7 @@ public class MedMorphReportCreator extends ReportCreator {
           fullUrl = fhirBase + "/" + resourceType + "/" + id;
         }
         // if the url contains version information remove it
-        fullUrl = fullUrl.replaceAll("/_history/.*","");
+        fullUrl = fullUrl.replaceAll("/_history/.*", "");
         logger.info(" Adding Resource Id : {} of Type {}", id, resourceType);
         becs.add(new BundleEntryComponent().setResource(r).setFullUrl(fullUrl));
       }
